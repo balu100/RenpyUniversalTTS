@@ -26,17 +26,23 @@
     "chunk_size": 50,
     "split_text": true,
     "default_profile": {
-      "voice_mode": "predefined",
-      "predefined_voice_id": "Emily.wav",
-      "temperature": 0.8,
-      "exaggeration": 1.0,
+      "voice_mode": "clone",
+      "reference_audio_filename": "Emily.wav",
+	  "temperature": 0.8,
+      "exaggeration": 1.2,
       "cfg_weight": 0.5,
+      "seed": 3000,
       "speed_factor": 1.0
     },
     "profiles": {
       "Narrator": {
-        "voice_mode": "predefined",
-        "predefined_voice_id": "Emily.wav"
+        "voice_mode": "clone",
+        "reference_audio_filename": "alice_reference.wav",
+        "temperature": 0.8,
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "seed": 3000,
+        "speed_factor": 1.0
       },
       "Alice": {
         "voice_mode": "clone",
@@ -50,11 +56,24 @@
       "Bob": {
         "voice_mode": "clone",
         "reference_audio_filename": "bob_reference.wav",
-        "temperature": 0.75,
-        "exaggeration": 0.9,
-        "cfg_weight": 0.55,
-        "seed": 1000,
+        "temperature": 0.8,
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "seed": 2000,
         "speed_factor": 1.0
+      },
+      "ExampleName1": {
+        "voice_mode": "clone",
+        "reference_audio_filename": "example_reference.wav",
+        "temperature": 0.8,
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "seed": 2000,
+        "speed_factor": 1.0
+      },
+      "ExampleName2": {
+        "voice_mode": "predefined",
+        "predefined_voice_id": "Emily.wav"
       }
     }
   }
