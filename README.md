@@ -146,12 +146,7 @@ am_santa (D-)
 
 ## Start Chatterbox
 
-```powershell
-git clone https://github.com/balu100/Chatterbox-TTS-Server
-cd Chatterbox-TTS-Server
-```
-
-Start Chatterbox-TTS-Server with start.bat/start.sh, then open:
+Start Chatterbox-TTS-Server, then open:
 
 ```text
 http://localhost:8880/docs
@@ -168,6 +163,18 @@ Use reference audio / voice cloning:
 ```text
 configs/chatterbox_clone.json
 ```
+
+Native Chatterbox streaming uses:
+
+```json
+"stream": true,
+"chunk_size": 50,
+"split_text": true
+```
+
+Streaming on the native `/tts` endpoint requires a Chatterbox server build that
+supports `stream: true`. If your server does not support it yet, set
+`"stream": false` in the Chatterbox config.
 
 ### Character Voice Cloning
 

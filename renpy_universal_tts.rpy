@@ -753,9 +753,12 @@ init 999 python:
         if chatterbox.get("output_format", None) is not None:
             payload["output_format"] = chatterbox.get("output_format")
 
-        for key in ("split_text", "chunk_size", "language"):
+        for key in ("stream", "split_text", "chunk_size", "language"):
             if key in chatterbox:
-                payload[key] = chatterbox.get(key)
+                if key == "stream":
+                    payload[key] = universal_tts_bool(chatterbox.get(key), False)
+                else:
+                    payload[key] = chatterbox.get(key)
 
         for key in (
             "predefined_voice_id",
@@ -766,11 +769,15 @@ init 999 python:
             "seed",
             "speed_factor",
             "language",
+            "stream",
             "split_text",
             "chunk_size",
         ):
             if key in profile:
-                payload[key] = profile.get(key)
+                if key == "stream":
+                    payload[key] = universal_tts_bool(profile.get(key), False)
+                else:
+                    payload[key] = profile.get(key)
 
         if voice_mode == "clone" and not payload.get("reference_audio_filename", None):
             raise ValueError("chatterbox clone profile is missing reference_audio_filename")

@@ -22,7 +22,9 @@
   "chatterbox": {
     "url": "http://localhost:8880/tts",
     "output_format": "pcm",
-    "split_text": false,
+    "stream": true,
+    "chunk_size": 50,
+    "split_text": true,
     "default_profile": {
       "voice_mode": "predefined",
       "predefined_voice_id": "Emily.wav",

@@ -25,8 +25,8 @@ renpy_universal_tts_config.json
 }
 ```
 
-For Chatterbox, the `openai`, `default_voice`, and `voices` fields are replaced
-by a `chatterbox` profile block.
+For native Chatterbox `/tts` configs, the `openai`, `default_voice`, and
+`voices` fields are replaced by a `chatterbox` profile block.
 
 ## VibeVoice
 
@@ -96,6 +96,13 @@ not support raw PCM.
 
 Use `configs/chatterbox_predefined.json`.
 
+Native Chatterbox streaming needs a server build that supports `stream: true`.
+If your server rejects the request, set `"stream": false`.
+
+For streaming Chatterbox, use `"split_text": true`. `chunk_size` controls how
+many words are synthesized per streamed chunk. Lower values start faster; higher
+values can sound smoother. The default example uses `50`.
+
 ```json
 "request": {
   "type": "chatterbox_tts"
@@ -103,7 +110,9 @@ Use `configs/chatterbox_predefined.json`.
 "chatterbox": {
   "url": "http://localhost:8880/tts",
   "output_format": "pcm",
-  "split_text": false,
+  "stream": true,
+  "chunk_size": 50,
+  "split_text": true,
   "default_profile": {
     "voice_mode": "predefined",
     "predefined_voice_id": "Emily.wav"
