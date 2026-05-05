@@ -90,7 +90,7 @@ NVIDIA GPU:
 docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
 ```
 
-You can add -e default_volume_multiplier=3.0 for louder sounds
+You can add ```-e default_volume_multiplier=3.0``` for louder sounds
 
 Then use:
 
