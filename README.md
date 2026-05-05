@@ -51,15 +51,11 @@ sudo apt install curl ffmpeg
 ```powershell
 git clone https://github.com/balu100/vibevoice-realtime-openai-api
 cd vibevoice-realtime-openai-api
-$env:default_volume_multiplier="3.0"
 docker compose up -d --build
 ```
 
-On Linux:
-
-```bash
-default_volume_multiplier=3.0 docker compose up -d --build
-```
+You can edit the Compose file's `default_volume_multiplier=3.0` value to your
+liking for louder or quieter sounds.
 
 Then use:
 
