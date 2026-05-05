@@ -108,18 +108,34 @@ Default Kokoro voices used by the preset:
 
 ```text
 Narrator -> af_heart
-MC       -> am_adam
-Daniel   -> am_adam
-default  -> af_bella
+MC       -> am_puck
+Daniel   -> am_puck
+default  -> af_heart
 ```
 
-Other common Kokoro voices:
+Kokoro voices with quality grades:
 
 ```text
-af_heart, af_bella, af_nova, af_sarah, af_sky
-am_adam, am_echo, am_liam, am_michael, am_onyx
-bf_alice, bf_emma, bf_lily
-bm_daniel, bm_fable, bm_george
+af_heart (A)
+af_alloy (C)
+af_aoede (C+)
+af_bella (A-)
+af_jessica (D)
+af_kore (C+)
+af_nicole (B-)
+af_nova (C)
+af_river (D)
+af_sarah (C+)
+af_sky (C-)
+am_adam (F+)
+am_echo (D)
+am_eric (D)
+am_fenrir (C+)
+am_liam (D)
+am_michael (C+)
+am_onyx (D)
+am_puck (C+)
+am_santa (D-)
 ```
 
 ## Change Voices

@@ -56,12 +56,12 @@ Simple config:
 
 ```python
 UNIVERSAL_TTS_ENGINE = "kokoro"
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_bella"
+UNIVERSAL_TTS_DEFAULT_VOICE = "af_heart"
 
 UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
     "Narrator": "af_heart",
     "Alice": "af_bella",
-    "Bob": "am_adam",
+    "Bob": "am_puck",
 }
 ```
 
@@ -87,7 +87,7 @@ MP3/WAV.
 
 ```python
 UNIVERSAL_TTS_ENGINE = "kokoro_mp3"
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_bella"
+UNIVERSAL_TTS_DEFAULT_VOICE = "af_heart"
 
 UNIVERSAL_TTS_RESPONSE_FORMAT = "mp3"
 UNIVERSAL_TTS_REQUEST_STREAM = False

@@ -140,11 +140,11 @@ init 999 python:
                 "sample_format": "s16le",
                 "sample_rate": 24000,
                 "channel_layout": "mono",
-                "default_voice": "af_bella",
+                "default_voice": "af_heart",
                 "voices": {
                     "Narrator": "af_heart",
-                    "MC": "am_adam",
-                    "Daniel": "am_adam",
+                    "MC": "am_puck",
+                    "Daniel": "am_puck",
                 },
             }
         elif engine in ("kokoro_mp3", "kokoro_fallback", "kokoro_mp3_fallback"):
@@ -158,11 +158,11 @@ init 999 python:
                 "sample_format": "s16le",
                 "sample_rate": 24000,
                 "channel_layout": "mono",
-                "default_voice": "af_bella",
+                "default_voice": "af_heart",
                 "voices": {
                     "Narrator": "af_heart",
-                    "MC": "am_adam",
-                    "Daniel": "am_adam",
+                    "MC": "am_puck",
+                    "Daniel": "am_puck",
                 },
             }
         elif engine in ("custom", "openai", "openai_compatible"):
