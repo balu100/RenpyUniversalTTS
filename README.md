@@ -1,48 +1,44 @@
 # Ren'Py Universal TTS
 
-A drop-in Ren'Py self-voicing replacement for OpenAI-compatible local TTS
-servers.
+Drop-in AI text-to-speech for Ren'Py games.
 
-Put `renpy_universal_tts.rpy` into a game's `game/` folder, run a local
-OpenAI-compatible `/v1/audio/speech` server, and press `V` in-game to toggle
-self-voicing. The script sends Ren'Py text to the server and plays the response
-through `ffplay`.
+Copy one file into a game's `game/` folder, start a local TTS server, and press
+`V` in-game. Ren'Py self-voicing will use your local AI voice instead of the
+default system voice.
 
-The default playback path is optimized for low-latency raw PCM streaming:
+This project works with OpenAI-compatible `/v1/audio/speech` servers. Presets
+are included for VibeVoice and Kokoro.
 
-```text
-curl -> ffplay
-s16le / 24000 Hz / mono
+## Fast Setup
+
+1. Start a TTS server.
+2. Make sure `ffplay` is installed.
+3. Copy `renpy_universal_tts.rpy` into the game's `game/` folder.
+4. Open `renpy_universal_tts.rpy`.
+5. Pick your engine near the top:
+
+```python
+UNIVERSAL_TTS_ENGINE = "vibevoice"
 ```
 
-## Quick Start
+or:
 
-1. Start a supported local TTS server. See the Kokoro and VibeVoice sections
-   below.
-2. Copy this file into the target game's `game/` folder:
-
-```text
-renpy_universal_tts.rpy
+```python
+UNIVERSAL_TTS_ENGINE = "kokoro"
 ```
 
-3. Make sure `curl` and `ffplay` are available.
-4. Edit the config block near the top of `renpy_universal_tts.rpy`.
-5. Start the game.
-6. Press `V` to enable Ren'Py self-voicing.
-7. Press `V` again to turn it off.
+6. Start the game.
+7. Press `V` to turn AI self-voicing on.
+8. Press `V` again to turn it off.
 
-Do not install multiple Ren'Py TTS replacement scripts at the same time. This
-script sets `config.tts_function`.
+Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
-## Requirements
+## Install ffplay
 
-- A Ren'Py game.
-- An OpenAI-compatible speech endpoint.
-- `curl`.
-- `ffplay`.
+Windows:
 
-Windows includes `curl.exe` on most modern installs. Install FFmpeg to get
-`ffplay`, or put `ffplay.exe` beside `renpy_universal_tts.rpy`.
+- Install FFmpeg.
+- Put `ffplay.exe` on `PATH`, or put it next to `renpy_universal_tts.rpy`.
 
 Linux:
 
@@ -50,101 +46,7 @@ Linux:
 sudo apt install curl ffmpeg
 ```
 
-## Basic Configuration
-
-Open `renpy_universal_tts.rpy` and edit these values near the top.
-
-### Endpoint
-
-```python
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "tts-1"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-UNIVERSAL_TTS_SPEED = None
-UNIVERSAL_TTS_EXTRA_BODY = {}
-```
-
-### Playback Format
-
-For raw PCM streaming:
-
-```python
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
-```
-
-For encoded formats like MP3 or WAV:
-
-```python
-UNIVERSAL_TTS_RESPONSE_FORMAT = "mp3"
-UNIVERSAL_TTS_REQUEST_STREAM = False
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = False
-```
-
-Raw PCM gives the lowest latency when the server supports it.
-
-### Default Voice
-
-```python
-UNIVERSAL_TTS_DEFAULT_VOICE = "Emma"
-```
-
-This voice is used when the script cannot identify a speaker or no speaker
-mapping exists.
-
-### Speaker Voices
-
-```python
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "Davis",
-    "MC": "Mike",
-    "Daniel": "Mike",
-}
-```
-
-Add or edit names to match the game:
-
-```python
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "Davis",
-    "Alice": "Emma",
-    "Bob": "Carter",
-    "Custom Character": "Grace",
-}
-```
-
-### Speaker Name Reading
-
-```python
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
-```
-
-Options:
-
-```python
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "always"
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "never"
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
-```
-
-- `"always"` reads the speaker name before every line.
-- `"never"` removes speaker names from spoken dialogue.
-- `"on_speaker_change"` reads the speaker name only when the speaker changes.
-
-Example:
-
-```text
-Alice: Hello.      -> reads "Alice. Hello."
-Alice: Come here.  -> reads "Come here."
-Bob: Wait.         -> reads "Bob. Wait."
-```
-
-## VibeVoice Setup
-
-Start VibeVoice:
+## Start VibeVoice
 
 ```powershell
 git clone https://github.com/balu100/vibevoice-realtime-openai-api
@@ -152,44 +54,29 @@ cd vibevoice-realtime-openai-api
 docker compose up -d --build
 ```
 
-First run downloads models and voice presets, so it can take a while before
-the server is ready.
-
-Recommended VibeVoice config:
+Then use:
 
 ```python
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "tts-1"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-UNIVERSAL_TTS_SPEED = None
-
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
-
-UNIVERSAL_TTS_DEFAULT_VOICE = "Emma"
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "Davis",
-    "MC": "Mike",
-    "Daniel": "Mike",
-}
+UNIVERSAL_TTS_ENGINE = "vibevoice"
 ```
 
-Common VibeVoice voice IDs:
+Default VibeVoice voices used by the preset:
 
 ```text
-OpenAI-style aliases:
-alloy, echo, fable, onyx, nova, shimmer
-
-VibeVoice names:
-Carter, Davis, Emma, Frank, Grace, Mike, Samuel
+Narrator -> Davis
+MC       -> Mike
+Daniel   -> Mike
+default  -> Emma
 ```
 
-## Kokoro Setup
+Other common VibeVoice voices:
 
-Start Kokoro:
+```text
+Carter, Davis, Emma, Frank, Grace, Mike, Samuel
+alloy, echo, fable, onyx, nova, shimmer
+```
+
+## Start Kokoro
 
 CPU:
 
@@ -203,197 +90,80 @@ NVIDIA GPU:
 docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
 ```
 
-Recommended Kokoro raw PCM config, if your Kokoro server supports
-`response_format = "pcm"`:
+Then use:
 
 ```python
-UNIVERSAL_TTS_URL = "http://127.0.0.1:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "kokoro"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-UNIVERSAL_TTS_SPEED = 1.0
+UNIVERSAL_TTS_ENGINE = "kokoro"
+```
 
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
+If your Kokoro server does not support raw PCM streaming, use the MP3 fallback:
 
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_bella"
+```python
+UNIVERSAL_TTS_ENGINE = "kokoro_mp3"
+```
+
+Default Kokoro voices used by the preset:
+
+```text
+Narrator -> af_heart
+MC       -> am_adam
+Daniel   -> am_adam
+default  -> af_bella
+```
+
+Other common Kokoro voices:
+
+```text
+af_heart, af_bella, af_nova, af_sarah, af_sky
+am_adam, am_echo, am_liam, am_michael, am_onyx
+bf_alice, bf_emma, bf_lily
+bm_daniel, bm_fable, bm_george
+```
+
+## Change Voices
+
+Edit this near the top of `renpy_universal_tts.rpy`:
+
+```python
+UNIVERSAL_TTS_DEFAULT_VOICE = "Emma"
+
 UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "af_heart",
-    "MC": "am_adam",
-    "Daniel": "am_adam",
+    "Narrator": "Davis",
+    "Alice": "Emma",
+    "Bob": "Carter",
 }
 ```
 
-Kokoro MP3 fallback config, if raw PCM is not available:
+Speaker names must match the names the game shows in dialogue.
+
+## Speaker Name Reading
 
 ```python
-UNIVERSAL_TTS_URL = "http://127.0.0.1:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "kokoro"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "mp3"
-UNIVERSAL_TTS_REQUEST_STREAM = False
-UNIVERSAL_TTS_SPEED = 1.0
-
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = False
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_bella"
+UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
 ```
 
-Common Kokoro voice IDs:
+Options:
 
 ```text
-American English female:
-af_heart, af_alloy, af_aoede, af_bella, af_jessica, af_kore,
-af_nicole, af_nova, af_river, af_sarah, af_sky
-
-American English male:
-am_adam, am_echo, am_eric, am_fenrir, am_liam, am_michael,
-am_onyx, am_puck, am_santa
-
-British English female:
-bf_alice, bf_emma, bf_isabella, bf_lily
-
-British English male:
-bm_daniel, bm_fable, bm_george, bm_lewis
+always             read the speaker name every line
+never              never read speaker names
+on_speaker_change  read the name only when the speaker changes
 ```
 
-Your running server is the final source of truth. If it supports a voice-list
-endpoint, check:
+Example with `on_speaker_change`:
 
 ```text
-http://localhost:8880/v1/audio/voices
+Alice: Hello.      -> Alice. Hello.
+Alice: Come here.  -> Come here.
+Bob: Wait.         -> Bob. Wait.
 ```
 
-## Test The Server
+## More Help
 
-Raw PCM test:
+- See `CONFIG_EXAMPLES.md` for full config examples.
+- See `TROUBLESHOOTING.md` if the server works but Ren'Py has no sound.
 
-PowerShell:
-
-```powershell
-$body = @{
-  model = "tts-1"
-  voice = "Emma"
-  input = "Hello from universal TTS."
-  response_format = "pcm"
-  stream = $true
-} | ConvertTo-Json -Compress
-
-$tmp = Join-Path $env:TEMP "renpy_universal_tts.json"
-Set-Content -NoNewline -Encoding ascii $tmp $body
-
-cmd /c "curl.exe -sN --json @$tmp http://localhost:8880/v1/audio/speech | ffplay.exe -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -"
-```
-
-Linux:
-
-```bash
-tmp="$(mktemp)"
-printf '%s' '{"model":"tts-1","voice":"Emma","input":"Hello from universal TTS.","response_format":"pcm","stream":true}' > "$tmp"
-curl -sN --json @"$tmp" http://localhost:8880/v1/audio/speech | ffplay -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -
-rm -f "$tmp"
-```
-
-If this works, the Ren'Py script is using the same audio path.
-
-## Advanced Configuration
-
-### ffplay Channel Option
-
-Current ffplay builds use:
-
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ch_layout"
-```
-
-Older ffplay builds may need:
-
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ac"
-```
-
-### External Tool Paths
-
-```python
-UNIVERSAL_TTS_CURL_PATH = "curl"
-UNIVERSAL_TTS_FFPLAY_PATH = "ffplay"
-UNIVERSAL_TTS_FFPLAY_LOGLEVEL = "error"
-UNIVERSAL_TTS_FFPLAY_VOLUME = None
-UNIVERSAL_TTS_FFPLAY_EXTRA_ARGS = ()
-```
-
-If `ffplay` is not beside the script and not on `PATH`, set an absolute path:
-
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "C:/Tools/ffmpeg/bin/ffplay.exe"
-```
-
-Optional volume example:
-
-```python
-UNIVERSAL_TTS_FFPLAY_VOLUME = 80
-```
-
-### Extra Request Fields
-
-Use `UNIVERSAL_TTS_EXTRA_BODY` for server-specific fields:
-
-```python
-UNIVERSAL_TTS_EXTRA_BODY = {
-    "temperature": 0.7,
-}
-```
-
-These fields are merged into the JSON request body.
-
-## How It Works
-
-This script sets Ren'Py's `config.tts_function`, so it only runs when Ren'Py
-self-voicing is enabled. It does not patch every dialogue line directly.
-
-When Ren'Py asks for a line to be spoken, the script writes a temporary JSON
-request, starts `curl`, starts `ffplay`, and pipes `curl` stdout into `ffplay`
-stdin.
-
-When a new line starts or self-voicing is turned off, the script stops the
-current `curl` and `ffplay` processes so they do not keep running in the
-background.
-
-## Troubleshooting
-
-### Nothing happens when pressing `V`
-
-- Make sure `renpy_universal_tts.rpy` is inside the game's `game/` folder.
-- Make sure the game supports Ren'Py self-voicing.
-- Check `log.txt` for lines starting with `UNIVERSAL TTS`.
-
-### The game logs connection errors
-
-- Make sure the TTS server is still running.
-- Check that `UNIVERSAL_TTS_URL` matches the server address.
-- Try the server test command above.
-
-### The API works but no sound plays
-
-- Make sure `ffplay` is installed or beside the `.rpy` file.
-- For raw PCM, check that the PCM format matches the ffplay config.
-- For MP3/WAV, set `UNIVERSAL_TTS_FFPLAY_RAW_PCM = False`.
-- If ffplay exits immediately, try `UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ac"`.
-
-### Voice volume is too low or muted
-
-Audio is played through external `ffplay`, not Ren'Py's voice mixer. Ren'Py
-voice volume and mute settings do not control it.
-
-Use:
-
-```python
-UNIVERSAL_TTS_FFPLAY_VOLUME = 80
-```
-
-or adjust system volume.
-
-## Expected Logs
+Useful log lines in `log.txt`:
 
 ```text
 UNIVERSAL TTS: stream MISS
@@ -401,12 +171,3 @@ UNIVERSAL TTS: playback format
 UNIVERSAL TTS: pipe started
 UNIVERSAL TTS: pipe finished
 ```
-
-## Notes
-
-- This is meant as a universal drop-in helper, so it avoids editing the target
-  game's scripts.
-- It depends on Ren'Py self-voicing. Use `V` to control it.
-- It expects a local OpenAI-compatible TTS server. The script does not start the
-  server by itself.
-- Audio is played by `ffplay`, outside Ren'Py's mixer.
