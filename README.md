@@ -84,12 +84,6 @@ Mike (Narrator)
 Samuel (Indian)
 ```
 
-OpenAI-style aliases:
-
-```text
-alloy, echo, fable, onyx, nova, shimmer
-```
-
 ## Start Kokoro
 
 CPU:
