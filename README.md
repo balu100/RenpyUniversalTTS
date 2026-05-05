@@ -146,7 +146,12 @@ am_santa (D-)
 
 ## Start Chatterbox
 
-Start Chatterbox-TTS-Server, then open:
+```powershell
+git clone https://github.com/balu100/Chatterbox-TTS-Server
+cd Chatterbox-TTS-Server
+```
+
+Start Chatterbox-TTS-Server with start.bat/start.sh, then open:
 
 ```text
 http://localhost:8880/docs
