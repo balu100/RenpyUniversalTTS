@@ -75,7 +75,6 @@ Other common VibeVoice voices:
 
 ```text
 Carter, Davis, Emma, Frank, Grace, Mike, Samuel
-alloy, echo, fable, onyx, nova, shimmer
 ```
 
 ## Start Kokoro
