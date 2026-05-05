@@ -16,6 +16,14 @@ game/
 
 Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
+## Video demo of real-time voice cloning using custom audio
+
+<a href="https://www.youtube.com/watch?v=XkgfubdlFaU">
+  <img src="https://img.youtube.com/vi/XkgfubdlFaU/maxresdefault.jpg"
+       alt="Watch the demo"
+       width="480">
+</a>
+
 ## Fast Setup
 
 1. Copy these two files into the target game's `game/` folder:
