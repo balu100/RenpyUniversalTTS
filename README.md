@@ -54,6 +54,8 @@ cd vibevoice-realtime-openai-api
 docker compose up -d --build
 ```
 
+You can add ```default_volume_multiplier=3.0``` to docker compose env for louder sounds
+
 Then use:
 
 ```python
@@ -83,6 +85,8 @@ CPU:
 ```powershell
 docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
 ```
+
+You can add ```-e default_volume_multiplier=3.0``` for louder sounds
 
 NVIDIA GPU:
 
