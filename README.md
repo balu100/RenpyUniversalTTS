@@ -85,6 +85,12 @@ Mike (Narrator)
 Samuel (Indian)
 ```
 
+OpenAI-style aliases:
+
+```text
+alloy, echo, fable, onyx, nova, shimmer
+```
+
 ## Start Kokoro
 
 CPU:
@@ -158,8 +164,31 @@ Use reference audio / voice cloning:
 configs/chatterbox_clone.json
 ```
 
-For cloned voices, put reference audio into the Chatterbox server's
-`reference_audio` folder, then use the filename in the JSON config:
+### Character Voice Cloning
+
+Chatterbox can use reference audio files for cloned character voices.
+
+Put reference `.wav` or `.mp3` files into the Chatterbox server's
+`reference_audio` folder, then map game speakers to those files in
+`renpy_universal_tts_config.json`.
+
+```json
+"profiles": {
+  "Alice": {
+    "voice_mode": "clone",
+    "reference_audio_filename": "alice_reference.wav"
+  },
+  "Bob": {
+    "voice_mode": "clone",
+    "reference_audio_filename": "bob_reference.wav"
+  }
+}
+```
+
+This lets each character use a different cloned voice. Voice quality depends on
+the reference audio and the Chatterbox server settings.
+
+You can also tune a cloned profile with Chatterbox generation settings:
 
 ```json
 "Alice": {
