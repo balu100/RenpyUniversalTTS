@@ -1,0 +1,59 @@
+{
+  "enabled": true,
+  "engine": "chatterbox",
+  "speaker_name_mode": "on_speaker_change",
+  "tools": {
+    "curl_path": "curl",
+    "ffplay_path": "ffplay",
+    "ffplay_loglevel": "error",
+    "ffplay_channel_option": "ch_layout",
+    "ffplay_volume": null,
+    "ffplay_extra_args": []
+  },
+  "audio": {
+    "raw_pcm": true,
+    "sample_format": "s16le",
+    "sample_rate": 24000,
+    "channel_layout": "mono"
+  },
+  "request": {
+    "type": "chatterbox_tts"
+  },
+  "chatterbox": {
+    "url": "http://localhost:8880/tts",
+    "output_format": "pcm",
+    "split_text": false,
+    "default_profile": {
+      "voice_mode": "predefined",
+      "predefined_voice_id": "Emily.wav",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.5,
+      "speed_factor": 1.0
+    },
+    "profiles": {
+      "Narrator": {
+        "voice_mode": "predefined",
+        "predefined_voice_id": "Emily.wav"
+      },
+      "Alice": {
+        "voice_mode": "clone",
+        "reference_audio_filename": "Gianna.wav",
+        "temperature": 0.8,
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "seed": 3000,
+        "speed_factor": 1.0
+      },
+      "Bob": {
+        "voice_mode": "clone",
+        "reference_audio_filename": "Robert.wav",
+        "temperature": 0.75,
+        "exaggeration": 0.9,
+        "cfg_weight": 0.55,
+        "seed": 1000,
+        "speed_factor": 1.0
+      }
+    }
+  }
+}

@@ -1,194 +1,186 @@
 # Config Examples
 
-Most users only need `UNIVERSAL_TTS_ENGINE`.
+All user settings live in `renpy_universal_tts_config.json`.
 
-Use one of these:
-
-```python
-UNIVERSAL_TTS_ENGINE = "vibevoice"
-UNIVERSAL_TTS_ENGINE = "kokoro"
-UNIVERSAL_TTS_ENGINE = "kokoro_mp3"
-UNIVERSAL_TTS_ENGINE = "custom"
-```
-
-Leave advanced values as `None` unless you know you need to override them.
-
-## VibeVoice
-
-Use this when running:
+The `.rpy` file should not be edited for normal setup. Pick an example from
+`configs/`, copy it next to the `.rpy`, and rename it to:
 
 ```text
-http://localhost:8880/v1/audio/speech
+renpy_universal_tts_config.json
 ```
 
-Simple config:
+## Main Fields
 
-```python
-UNIVERSAL_TTS_ENGINE = "vibevoice"
-UNIVERSAL_TTS_DEFAULT_VOICE = "Emma"
-
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "Davis",
-    "Alice": "Emma",
-    "Bob": "Carter",
+```json
+{
+  "enabled": true,
+  "engine": "vibevoice",
+  "speaker_name_mode": "on_speaker_change",
+  "tools": {},
+  "audio": {},
+  "request": {},
+  "openai": {},
+  "default_voice": "Emma",
+  "voices": {}
 }
 ```
 
-Preset details:
+For Chatterbox, the `openai`, `default_voice`, and `voices` fields are replaced
+by a `chatterbox` profile block.
 
-```python
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "tts-1"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
+## VibeVoice
 
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
+Use `configs/vibevoice.json`.
+
+Voice mapping:
+
+```json
+"default_voice": "Emma",
+"voices": {
+  "Narrator": "Davis",
+  "Alice": "Emma",
+  "Bob": "Carter"
+}
+```
+
+Endpoint:
+
+```json
+"request": {
+  "type": "openai"
+},
+"openai": {
+  "url": "http://localhost:8880/v1/audio/speech",
+  "model": "tts-1",
+  "response_format": "pcm",
+  "stream": true,
+  "speed": null,
+  "extra_body": {}
+}
 ```
 
 ## Kokoro Raw PCM
 
-Use this when your Kokoro server supports `response_format = "pcm"`.
+Use `configs/kokoro.json`.
 
-Simple config:
-
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro"
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_heart"
-
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "af_heart",
-    "Alice": "af_bella",
-    "Bob": "am_puck",
+```json
+"default_voice": "af_heart",
+"voices": {
+  "Narrator": "af_heart",
+  "Alice": "af_bella",
+  "Bob": "am_puck"
 }
-```
-
-Preset details:
-
-```python
-UNIVERSAL_TTS_URL = "http://127.0.0.1:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "kokoro"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-UNIVERSAL_TTS_SPEED = 1.0
-
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
 ```
 
 ## Kokoro MP3 Fallback
 
-Use this if Kokoro PCM streaming does not work, or if the server only returns
-MP3/WAV.
+Use `configs/kokoro_mp3.json`.
 
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro_mp3"
-UNIVERSAL_TTS_DEFAULT_VOICE = "af_heart"
-
-UNIVERSAL_TTS_RESPONSE_FORMAT = "mp3"
-UNIVERSAL_TTS_REQUEST_STREAM = False
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = False
+```json
+"audio": {
+  "raw_pcm": false,
+  "sample_format": "s16le",
+  "sample_rate": 24000,
+  "channel_layout": "mono"
+},
+"openai": {
+  "response_format": "mp3",
+  "stream": false
+}
 ```
 
-This has more delay than raw PCM streaming, but it is simpler for some servers.
+This has more delay than raw PCM streaming, but it is useful if a server does
+not support raw PCM.
 
-## Custom OpenAI-Compatible Server
+## Chatterbox Predefined Voices
 
-Use this for any server that accepts OpenAI-style speech requests.
+Use `configs/chatterbox_predefined.json`.
 
-```python
-UNIVERSAL_TTS_ENGINE = "custom"
-
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
-UNIVERSAL_TTS_MODEL = "tts-1"
-UNIVERSAL_TTS_DEFAULT_VOICE = "alloy"
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
+```json
+"request": {
+  "type": "chatterbox_tts"
+},
+"chatterbox": {
+  "url": "http://localhost:8880/tts",
+  "output_format": "pcm",
+  "split_text": false,
+  "default_profile": {
+    "voice_mode": "predefined",
+    "predefined_voice_id": "Emily.wav"
+  },
+  "profiles": {
+    "Alice": {
+      "voice_mode": "predefined",
+      "predefined_voice_id": "Alice.wav"
+    }
+  }
+}
 ```
 
-For MP3/WAV:
+## Chatterbox Voice Cloning
 
-```python
-UNIVERSAL_TTS_RESPONSE_FORMAT = "mp3"
-UNIVERSAL_TTS_REQUEST_STREAM = False
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = False
+Use `configs/chatterbox_clone.json`.
+
+Reference audio filenames must exist in the Chatterbox server's
+`reference_audio` folder.
+
+```json
+"profiles": {
+  "Alice": {
+    "voice_mode": "clone",
+    "reference_audio_filename": "Gianna.wav",
+    "temperature": 0.8,
+    "exaggeration": 1.2,
+    "cfg_weight": 0.5,
+    "seed": 3000,
+    "speed_factor": 1.0
+  }
+}
 ```
 
-## Speaker Name Reading
+## Audio
 
-```python
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "always"
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "never"
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
+Raw PCM streaming:
+
+```json
+"audio": {
+  "raw_pcm": true,
+  "sample_format": "s16le",
+  "sample_rate": 24000,
+  "channel_layout": "mono"
+}
 ```
 
-Recommended:
+Encoded MP3/WAV/Opus:
 
-```python
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
+```json
+"audio": {
+  "raw_pcm": false
+}
 ```
 
-## ffplay Path
+## Tools
 
-If `ffplay` is next to the `.rpy` file or on `PATH`, keep:
-
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "ffplay"
+```json
+"tools": {
+  "curl_path": "curl",
+  "ffplay_path": "ffplay",
+  "ffplay_loglevel": "error",
+  "ffplay_channel_option": "ch_layout",
+  "ffplay_volume": null,
+  "ffplay_extra_args": []
+}
 ```
 
-Absolute Windows path example:
+If `ffplay` is not beside the `.rpy` file and not on `PATH`, use an absolute
+path:
 
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "C:/Tools/ffmpeg/bin/ffplay.exe"
-```
-
-Absolute Linux path example:
-
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "/usr/bin/ffplay"
-```
-
-## Volume
-
-Audio plays through external `ffplay`, not Ren'Py's voice mixer.
-
-```python
-UNIVERSAL_TTS_FFPLAY_VOLUME = 80
-```
-
-Leave it as `None` to use ffplay/system default volume.
-
-## ffplay Channel Option
-
-Current ffplay builds usually need:
-
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ch_layout"
+```json
+"ffplay_path": "C:/Tools/ffmpeg/bin/ffplay.exe"
 ```
 
 Older ffplay builds may need:
 
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ac"
+```json
+"ffplay_channel_option": "ac"
 ```
-
-## Extra Request Fields
-
-For server-specific options:
-
-```python
-UNIVERSAL_TTS_EXTRA_BODY = {
-    "temperature": 0.7,
-}
-```
-
-These fields are added to the JSON request body.

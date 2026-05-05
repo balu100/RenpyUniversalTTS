@@ -2,36 +2,46 @@
 
 Drop-in AI text-to-speech for Ren'Py games.
 
-Copy one file into a game's `game/` folder, start a local TTS server, and press
-`V` in-game. Ren'Py self-voicing will use your local AI voice instead of the
-default system voice.
+Copy the script and config file into a game's `game/` folder, start a local TTS
+server, and press `V` in-game. Ren'Py self-voicing will use your local AI voice
+instead of the default system voice.
 
-This project works with OpenAI-compatible `/v1/audio/speech` servers. Presets
-are included for VibeVoice and Kokoro.
+The `.rpy` file is the mechanics. The JSON file is the config.
+
+```text
+game/
+  renpy_universal_tts.rpy
+  renpy_universal_tts_config.json
+```
+
+Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
 ## Fast Setup
 
-1. Start a TTS server.
-2. Make sure `ffplay` is installed.
-3. Copy `renpy_universal_tts.rpy` into the game's `game/` folder.
-4. Open `renpy_universal_tts.rpy`.
-5. Pick your engine near the top:
+1. Copy these two files into the target game's `game/` folder:
 
-```python
-UNIVERSAL_TTS_ENGINE = "vibevoice"
+```text
+renpy_universal_tts.rpy
+renpy_universal_tts_config.json
 ```
 
-or:
+2. Start your TTS server.
+3. Install `ffplay`.
+4. Edit only `renpy_universal_tts_config.json`.
+5. Start the game.
+6. Press `V` to turn AI self-voicing on.
+7. Press `V` again to turn it off.
 
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro"
+To switch engine, copy one of the example configs from `configs/` and rename it:
+
+```text
+configs/vibevoice.json              -> renpy_universal_tts_config.json
+configs/kokoro.json                 -> renpy_universal_tts_config.json
+configs/kokoro_mp3.json             -> renpy_universal_tts_config.json
+configs/chatterbox_predefined.json  -> renpy_universal_tts_config.json
+configs/chatterbox_clone.json       -> renpy_universal_tts_config.json
+configs/custom_openai.json          -> renpy_universal_tts_config.json
 ```
-
-6. Start the game.
-7. Press `V` to turn AI self-voicing on.
-8. Press `V` again to turn it off.
-
-Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
 ## Install ffplay
 
@@ -57,22 +67,13 @@ docker compose up -d --build
 You can edit the Compose file's `default_volume_multiplier=3.0` value to your
 liking for louder or quieter sounds.
 
-Then use:
-
-```python
-UNIVERSAL_TTS_ENGINE = "vibevoice"
-```
-
-Default VibeVoice voices used by the preset:
+Use:
 
 ```text
-Narrator -> Davis
-MC       -> Mike
-Daniel   -> Mike
-default  -> Emma
+configs/vibevoice.json
 ```
 
-Other common VibeVoice voices:
+VibeVoice voices:
 
 ```text
 Carter (Male)
@@ -104,27 +105,18 @@ NVIDIA GPU:
 docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
 ```
 
-You can add ```-e default_volume_multiplier=3.0``` for louder sounds
+You can add `-e default_volume_multiplier=3.0` for louder sounds.
 
-Then use:
-
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro"
-```
-
-If your Kokoro server does not support raw PCM streaming, use the MP3 fallback:
-
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro_mp3"
-```
-
-Default Kokoro voices used by the preset:
+Use:
 
 ```text
-Narrator -> af_heart
-MC       -> am_puck
-Daniel   -> am_puck
-default  -> af_heart
+configs/kokoro.json
+```
+
+If your Kokoro server does not support raw PCM streaming, use:
+
+```text
+configs/kokoro_mp3.json
 ```
 
 Kokoro voices with quality grades:
@@ -152,17 +144,83 @@ am_puck (C+)
 am_santa (D-)
 ```
 
+## Start Chatterbox
+
+Start Chatterbox-TTS-Server, then open:
+
+```text
+http://localhost:8880/docs
+```
+
+Use predefined voices:
+
+```text
+configs/chatterbox_predefined.json
+```
+
+Use reference audio / voice cloning:
+
+```text
+configs/chatterbox_clone.json
+```
+
+For cloned voices, put reference audio into the Chatterbox server's
+`reference_audio` folder, then use the filename in the JSON config:
+
+```json
+"Alice": {
+  "voice_mode": "clone",
+  "reference_audio_filename": "Gianna.wav",
+  "exaggeration": 1.2,
+  "seed": 3000
+}
+```
+
+For predefined voices, use filenames from the Chatterbox `voices` folder:
+
+```json
+"Bob": {
+  "voice_mode": "predefined",
+  "predefined_voice_id": "Michael.wav"
+}
+```
+
+If your Chatterbox build does not support raw PCM, set:
+
+```json
+"audio": {
+  "raw_pcm": false
+},
+"chatterbox": {
+  "output_format": "wav"
+}
+```
+
 ## Change Voices
 
-Edit this near the top of `renpy_universal_tts.rpy`:
+For VibeVoice, Kokoro, and other OpenAI-compatible servers:
 
-```python
-UNIVERSAL_TTS_DEFAULT_VOICE = "Emma"
+```json
+"default_voice": "Emma",
+"voices": {
+  "Narrator": "Davis",
+  "Alice": "Emma",
+  "Bob": "Carter"
+}
+```
 
-UNIVERSAL_TTS_VOICE_BY_SPEAKER = {
-    "Narrator": "Davis",
-    "Alice": "Emma",
-    "Bob": "Carter",
+For Chatterbox:
+
+```json
+"profiles": {
+  "Narrator": {
+    "voice_mode": "predefined",
+    "predefined_voice_id": "Emily.wav"
+  },
+  "Alice": {
+    "voice_mode": "clone",
+    "reference_audio_filename": "Gianna.wav"
+  }
 }
 ```
 
@@ -170,8 +228,8 @@ Speaker names must match the names the game shows in dialogue.
 
 ## Speaker Name Reading
 
-```python
-UNIVERSAL_TTS_READ_SPEAKER_NAMES = "on_speaker_change"
+```json
+"speaker_name_mode": "on_speaker_change"
 ```
 
 Options:
@@ -192,14 +250,21 @@ Bob: Wait.         -> Bob. Wait.
 
 ## More Help
 
-- See `CONFIG_EXAMPLES.md` for full config examples.
+- See `CONFIG_EXAMPLES.md` for the config layout.
 - See `TROUBLESHOOTING.md` if the server works but Ren'Py has no sound.
 
 Useful log lines in `log.txt`:
 
 ```text
+UNIVERSAL TTS: config loaded
 UNIVERSAL TTS: stream MISS
-UNIVERSAL TTS: playback format
+UNIVERSAL TTS: request built
 UNIVERSAL TTS: pipe started
 UNIVERSAL TTS: pipe finished
+```
+
+If `log.txt` does not show these lines, check:
+
+```text
+game/renpy_universal_tts_debug.log
 ```

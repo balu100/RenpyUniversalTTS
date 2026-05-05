@@ -6,33 +6,64 @@ Check the game's `log.txt` first. Search for:
 UNIVERSAL TTS
 ```
 
+If `log.txt` does not include `UNIVERSAL TTS` lines, check the script's own
+debug file:
+
+```text
+game/renpy_universal_tts_debug.log
+```
+
 ## Pressing V Does Nothing
 
 - Make sure `renpy_universal_tts.rpy` is inside the game's `game/` folder.
+- Make sure `renpy_universal_tts_config.json` is next to it.
 - Make sure the game is a Ren'Py game.
 - Make sure no other TTS replacement script is installed.
-- Check `log.txt` for `UNIVERSAL TTS: renpy_universal_tts.rpy loaded`.
+- Check for `UNIVERSAL TTS: config loaded`.
+  If that line is not in `log.txt`, check `renpy_universal_tts_debug.log`.
+
+If the config is missing, the log will contain:
+
+```text
+UNIVERSAL TTS ERROR: missing renpy_universal_tts_config.json
+```
+
+## Config Does Not Load
+
+JSON does not allow comments or trailing commas.
+
+Bad:
+
+```json
+{
+  "engine": "vibevoice",
+}
+```
+
+Good:
+
+```json
+{
+  "engine": "vibevoice"
+}
+```
 
 ## Server Is Not Reached
 
-Check that the server is running and that this URL matches your config:
+For VibeVoice/Kokoro/custom OpenAI-compatible servers, check:
 
-```python
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
+```json
+"openai": {
+  "url": "http://localhost:8880/v1/audio/speech"
+}
 ```
 
-VibeVoice usually uses:
+For Chatterbox native profiles, check:
 
-```python
-UNIVERSAL_TTS_ENGINE = "vibevoice"
-UNIVERSAL_TTS_URL = "http://localhost:8880/v1/audio/speech"
-```
-
-Kokoro usually uses:
-
-```python
-UNIVERSAL_TTS_ENGINE = "kokoro"
-UNIVERSAL_TTS_URL = "http://127.0.0.1:8880/v1/audio/speech"
+```json
+"chatterbox": {
+  "url": "http://localhost:8880/tts"
+}
 ```
 
 ## API Works But There Is No Sound
@@ -51,21 +82,25 @@ Linux:
 ffplay -version
 ```
 
-If `ffplay` is not found, install FFmpeg or set:
+If `ffplay` is not found, set:
 
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "C:/Tools/ffmpeg/bin/ffplay.exe"
+```json
+"tools": {
+  "ffplay_path": "C:/Tools/ffmpeg/bin/ffplay.exe"
+}
 ```
 
 or:
 
-```python
-UNIVERSAL_TTS_FFPLAY_PATH = "/usr/bin/ffplay"
+```json
+"tools": {
+  "ffplay_path": "/usr/bin/ffplay"
+}
 ```
 
 ## Raw PCM Test Command
 
-This is the same audio path the script uses.
+This is the same audio path the script uses for raw PCM.
 
 PowerShell:
 
@@ -93,45 +128,72 @@ curl -sN --json @"$tmp" http://localhost:8880/v1/audio/speech | ffplay -nodisp -
 rm -f "$tmp"
 ```
 
-If the terminal command works but Ren'Py does not, check the `UNIVERSAL TTS`
-lines in `log.txt`.
+## Chatterbox Raw PCM Test Command
+
+PowerShell:
+
+```powershell
+$body = @{
+  text = "Hello from Chatterbox."
+  voice_mode = "predefined"
+  predefined_voice_id = "Emily.wav"
+  output_format = "pcm"
+  split_text = $false
+} | ConvertTo-Json -Compress
+
+$tmp = Join-Path $env:TEMP "chatterbox_tts.json"
+Set-Content -NoNewline -Encoding ascii $tmp $body
+
+cmd /c "curl.exe -sN --json @$tmp http://localhost:8880/tts | ffplay.exe -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -"
+```
+
+If this fails because your Chatterbox build does not support PCM, use WAV:
+
+```json
+"audio": {
+  "raw_pcm": false
+},
+"chatterbox": {
+  "output_format": "wav"
+}
+```
 
 ## Loud Noise Or Broken Audio
 
-This usually means the server output does not match the ffplay raw PCM settings.
+The server output does not match the `audio` settings.
 
-For VibeVoice raw PCM, use:
+For raw PCM:
 
-```python
-UNIVERSAL_TTS_RESPONSE_FORMAT = "pcm"
-UNIVERSAL_TTS_REQUEST_STREAM = True
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = True
-UNIVERSAL_TTS_PCM_SAMPLE_FORMAT = "s16le"
-UNIVERSAL_TTS_PCM_SAMPLE_RATE = 24000
-UNIVERSAL_TTS_PCM_CHANNEL_LAYOUT = "mono"
+```json
+"audio": {
+  "raw_pcm": true,
+  "sample_format": "s16le",
+  "sample_rate": 24000,
+  "channel_layout": "mono"
+}
 ```
 
-If your server returns MP3 or WAV, use:
+For MP3/WAV/Opus:
 
-```python
-UNIVERSAL_TTS_FFPLAY_RAW_PCM = False
+```json
+"audio": {
+  "raw_pcm": false
+}
 ```
 
 ## ffplay Starts Then Exits
 
 Try changing:
 
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ch_layout"
+```json
+"ffplay_channel_option": "ch_layout"
 ```
 
 to:
 
-```python
-UNIVERSAL_TTS_FFPLAY_CHANNEL_OPTION = "ac"
+```json
+"ffplay_channel_option": "ac"
 ```
-
-This depends on your ffplay build.
 
 ## Voice Volume Ignores Ren'Py Settings
 
@@ -140,8 +202,10 @@ not control it.
 
 Use:
 
-```python
-UNIVERSAL_TTS_FFPLAY_VOLUME = 80
+```json
+"tools": {
+  "ffplay_volume": 80
+}
 ```
 
 or adjust system volume.
@@ -149,15 +213,14 @@ or adjust system volume.
 ## Current Line Is Skipped
 
 The script cancels the old TTS process when a new line arrives. This is wanted
-behavior when clicking through dialogue. If a line is skipped, check whether the
-TTS server is still generating the previous request or has stopped accepting
-new requests.
+behavior when clicking through dialogue.
 
 Useful log lines:
 
 ```text
 UNIVERSAL TTS: queued
 UNIVERSAL TTS: stream MISS
+UNIVERSAL TTS: request built
 UNIVERSAL TTS: pipe started
 UNIVERSAL TTS: pipe finished
 ```

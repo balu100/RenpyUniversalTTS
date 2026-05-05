@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "engine": "kokoro",
+  "speaker_name_mode": "on_speaker_change",
+  "tools": {
+    "curl_path": "curl",
+    "ffplay_path": "ffplay",
+    "ffplay_loglevel": "error",
+    "ffplay_channel_option": "ch_layout",
+    "ffplay_volume": null,
+    "ffplay_extra_args": []
+  },
+  "audio": {
+    "raw_pcm": false,
+    "sample_format": "s16le",
+    "sample_rate": 24000,
+    "channel_layout": "mono"
+  },
+  "request": {
+    "type": "openai"
+  },
+  "openai": {
+    "url": "http://127.0.0.1:8880/v1/audio/speech",
+    "model": "kokoro",
+    "response_format": "mp3",
+    "stream": false,
+    "speed": 1.0,
+    "extra_body": {}
+  },
+  "default_voice": "af_heart",
+  "voices": {
+    "Narrator": "af_heart",
+    "MC": "am_puck",
+    "Daniel": "am_puck"
+  }
+}
