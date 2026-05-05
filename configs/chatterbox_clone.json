@@ -40,7 +40,7 @@
       },
       "Alice": {
         "voice_mode": "clone",
-        "reference_audio_filename": "Gianna.wav",
+        "reference_audio_filename": "alice_reference.wav",
         "temperature": 0.8,
         "exaggeration": 1.2,
         "cfg_weight": 0.5,
@@ -49,7 +49,7 @@
       },
       "Bob": {
         "voice_mode": "clone",
-        "reference_audio_filename": "Robert.wav",
+        "reference_audio_filename": "bob_reference.wav",
         "temperature": 0.75,
         "exaggeration": 0.9,
         "cfg_weight": 0.55,

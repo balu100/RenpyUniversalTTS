@@ -180,9 +180,23 @@ supports `stream: true`. If your server does not support it yet, set
 
 Chatterbox can use reference audio files for cloned character voices.
 
-Put reference `.wav` or `.mp3` files into the Chatterbox server's
-`reference_audio` folder, then map game speakers to those files in
-`renpy_universal_tts_config.json`.
+Ren'Py Universal TTS does not upload reference audio. Put reference `.wav` or
+`.mp3` files into the Chatterbox server's own `reference_audio` folder, then
+map game speakers to those filenames in `renpy_universal_tts_config.json`.
+
+```text
+Chatterbox-TTS-Server/
+  reference_audio/
+    alice_reference.wav
+    bob_reference.wav
+
+game/
+  renpy_universal_tts.rpy
+  renpy_universal_tts_config.json
+```
+
+Use only the filename in the config, not a full path and not a file from the
+Ren'Py game folder.
 
 ```json
 "profiles": {
@@ -205,7 +219,7 @@ You can also tune a cloned profile with Chatterbox generation settings:
 ```json
 "Alice": {
   "voice_mode": "clone",
-  "reference_audio_filename": "Gianna.wav",
+  "reference_audio_filename": "alice_reference.wav",
   "exaggeration": 1.2,
   "seed": 3000
 }
@@ -254,7 +268,7 @@ For Chatterbox:
   },
   "Alice": {
     "voice_mode": "clone",
-    "reference_audio_filename": "Gianna.wav"
+    "reference_audio_filename": "alice_reference.wav"
   }
 }
 ```

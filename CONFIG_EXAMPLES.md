@@ -131,13 +131,20 @@ values can sound smoother. The default example uses `50`.
 Use `configs/chatterbox_clone.json`.
 
 Reference audio filenames must exist in the Chatterbox server's
-`reference_audio` folder.
+`reference_audio` folder. The Ren'Py mod does not upload audio files; it only
+sends the filename to the Chatterbox API.
+
+```text
+Chatterbox-TTS-Server/
+  reference_audio/
+    alice_reference.wav
+```
 
 ```json
 "profiles": {
   "Alice": {
     "voice_mode": "clone",
-    "reference_audio_filename": "Gianna.wav",
+    "reference_audio_filename": "alice_reference.wav",
     "temperature": 0.8,
     "exaggeration": 1.2,
     "cfg_weight": 0.5,
