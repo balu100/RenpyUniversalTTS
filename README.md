@@ -54,8 +54,6 @@ cd vibevoice-realtime-openai-api
 docker compose up -d --build
 ```
 
-You can add ```default_volume_multiplier=3.0``` to docker compose env for louder sounds
-
 Then use:
 
 ```python
@@ -74,7 +72,19 @@ default  -> Emma
 Other common VibeVoice voices:
 
 ```text
-Carter, Davis, Emma, Frank, Grace, Mike, Samuel
+Carter (Male)
+Davis (Main narrator)
+Emma (Female)
+Frank (Australian)
+Grace (Soft male)
+Mike (Narrator)
+Samuel (Indian)
+```
+
+OpenAI-style aliases:
+
+```text
+alloy, echo, fable, onyx, nova, shimmer
 ```
 
 ## Start Kokoro
@@ -84,8 +94,6 @@ CPU:
 ```powershell
 docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
 ```
-
-You can add ```-e default_volume_multiplier=3.0``` for louder sounds
 
 NVIDIA GPU:
 
