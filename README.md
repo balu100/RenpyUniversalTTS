@@ -192,6 +192,9 @@ supports `stream: true`. If your server does not support it yet, set
 
 ### Character Voice Cloning
 
+### Reference HQ audios
+[`https://github.com/balu100/reference_audio`](https://github.com/balu100/reference_audio)
+
 Chatterbox can use reference audio files for cloned character voices.
 
 Ren'Py Universal TTS does not upload reference audio. Put reference `.wav` or
