@@ -187,7 +187,7 @@ configs/qwen.json
 ```
 
 Qwen voice IDs come from your own `voices.json`. The example config uses
-`d01`, `d03`, and `d12` only as placeholders.
+`d01`, `d03`, and `d12`.
 
 To add voices, put the reference audio files in:
 
