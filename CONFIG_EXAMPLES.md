@@ -92,6 +92,38 @@ Use `configs/kokoro_mp3.json`.
 This has more delay than raw PCM streaming, but it is useful if a server does
 not support raw PCM.
 
+## Qwen3-TTS
+
+Use `configs/qwen.json`.
+
+Qwen uses the normal OpenAI-compatible config shape. Voice IDs come from the
+Qwen server's `voices.json`; the example IDs below are placeholders.
+
+Reference audio files need to be in the Qwen server's `reference_audio/` folder,
+and each usable voice also needs an entry in `voices.json`.
+
+```json
+"request": {
+  "type": "openai"
+},
+"openai": {
+  "url": "http://127.0.0.1:8880/v1/audio/speech",
+  "model": "tts-1",
+  "response_format": "pcm",
+  "speed": null,
+  "extra_body": {}
+},
+"default_voice": "d01",
+"voices": {
+  "Narrator": "d01",
+  "ExampleName1": "d03",
+  "ExampleName2": "d12"
+}
+```
+
+Qwen streams when `response_format` is `pcm`. Do not add `"stream": true`
+unless your Qwen server explicitly supports that request field.
+
 ## Chatterbox Predefined Voices
 
 Use `configs/chatterbox_predefined.json`.

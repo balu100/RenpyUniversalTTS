@@ -16,14 +16,6 @@ game/
 
 Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
-## Video demo of real-time voice cloning using custom audio
-
-<a href="https://www.youtube.com/watch?v=XkgfubdlFaU">
-  <img src="https://img.youtube.com/vi/XkgfubdlFaU/maxresdefault.jpg"
-       alt="Watch the demo"
-       width="480">
-</a>
-
 ## Fast Setup
 
 1. Copy these two files into the target game's `game/` folder:
@@ -46,6 +38,7 @@ To switch engine, copy one of the example configs from `configs/` and rename it:
 configs/vibevoice.json              -> renpy_universal_tts_config.json
 configs/kokoro.json                 -> renpy_universal_tts_config.json
 configs/kokoro_mp3.json             -> renpy_universal_tts_config.json
+configs/qwen.json                   -> renpy_universal_tts_config.json
 configs/chatterbox_predefined.json  -> renpy_universal_tts_config.json
 configs/chatterbox_clone.json       -> renpy_universal_tts_config.json
 configs/custom_openai.json          -> renpy_universal_tts_config.json
@@ -152,16 +145,61 @@ am_puck (C+)
 am_santa (D-)
 ```
 
-## Start Chatterbox
+## Start Qwen3-TTS
 
+Start the faster-qwen3-tts OpenAI-compatible server:
 
 ```powershell
-git clone https://github.com/balu100/Chatterbox-TTS-Server
-cd Chatterbox-TTS-Server
-start.bat
+git clone https://github.com/balu100/faster-qwen3-tts
+cd faster-qwen3-tts
+docker compose up
 ```
 
-Docs:
+Use:
+
+```text
+configs/qwen.json
+```
+
+Qwen voice IDs come from your own `voices.json`. The example config uses
+`d01`, `d03`, and `d12` only as placeholders.
+
+To add voices, put the reference audio files in:
+
+```text
+faster-qwen3-tts/reference_audio/
+```
+
+Then add matching entries to:
+
+```text
+faster-qwen3-tts/voices.json
+```
+
+If you want the 0.6B model, edit the Dockerfile and change:
+
+```text
+Qwen/Qwen3-TTS-12Hz-1.7B-Base
+```
+
+to:
+
+```text
+Qwen/Qwen3-TTS-12Hz-0.6B-Base
+```
+
+For raw PCM streaming, Qwen uses:
+
+```json
+"response_format": "pcm"
+```
+
+Do not add `"stream": true` unless your Qwen server explicitly supports it.
+
+## Start Chatterbox
+
+Start Chatterbox-TTS-Server, then open:
+
 ```text
 http://localhost:8880/docs
 ```
@@ -191,9 +229,6 @@ supports `stream: true`. If your server does not support it yet, set
 `"stream": false` in the Chatterbox config.
 
 ### Character Voice Cloning
-
-### Reference HQ audios
-[`https://github.com/balu100/reference_audio`](https://github.com/balu100/reference_audio)
 
 Chatterbox can use reference audio files for cloned character voices.
 
@@ -264,7 +299,7 @@ If your Chatterbox build does not support raw PCM, set:
 
 ## Change Voices
 
-For VibeVoice, Kokoro, and other OpenAI-compatible servers:
+For VibeVoice, Kokoro, Qwen, and other OpenAI-compatible servers:
 
 ```json
 "default_voice": "Emma",

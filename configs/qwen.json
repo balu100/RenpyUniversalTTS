@@ -1,0 +1,35 @@
+{
+  "enabled": true,
+  "engine": "qwen3tts",
+  "speaker_name_mode": "on_speaker_change",
+  "tools": {
+    "curl_path": "curl",
+    "ffplay_path": "ffplay",
+    "ffplay_loglevel": "error",
+    "ffplay_channel_option": "ch_layout",
+    "ffplay_volume": null,
+    "ffplay_extra_args": []
+  },
+  "audio": {
+    "raw_pcm": true,
+    "sample_format": "s16le",
+    "sample_rate": 24000,
+    "channel_layout": "mono"
+  },
+  "request": {
+    "type": "openai"
+  },
+  "openai": {
+    "url": "http://127.0.0.1:8880/v1/audio/speech",
+    "model": "tts-1",
+    "response_format": "pcm",
+    "speed": null,
+    "extra_body": {}
+  },
+  "default_voice": "d01",
+  "voices": {
+    "Narrator": "d01",
+    "ExampleName1": "d03",
+    "ExampleName2": "d12"
+  }
+}
