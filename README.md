@@ -16,6 +16,31 @@ game/
 
 Do not install multiple Ren'Py TTS replacement scripts at the same time.
 
+## Demo videos
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://youtu.be/Ru3-4g4P7zo">
+        <img src="https://img.youtube.com/vi/Ru3-4g4P7zo/hqdefault.jpg" width="360" alt="Qwen3 - Real-time voice cloning using custom audio">
+      </a>
+      <br>
+      <strong>👑Qwen3👑</strong>
+      <br>
+      Real-time voice cloning using custom audio
+    </td>
+    <td align="center" width="50%">
+      <a href="https://youtu.be/XkgfubdlFaU">
+        <img src="https://img.youtube.com/vi/XkgfubdlFaU/hqdefault.jpg" width="360" alt="Chatterbox - Real-time voice cloning using custom audio">
+      </a>
+      <br>
+      <strong>♕Chatterbox♕</strong>
+      <br>
+      Real-time voice cloning using custom audio
+    </td>
+  </tr>
+</table>
+
 ## Fast Setup
 
 1. Copy these two files into the target game's `game/` folder:
