@@ -1,396 +1,133 @@
 # Ren'Py Universal TTS
 
-Drop-in AI text-to-speech for Ren'Py games.
+Read Ren'Py dialogue with a local AI voice. Press **V** to enable self-voicing;
+press it again to stop. Character voices and speaker-name reading are configured
+in one JSON file.
 
-Copy the script and config file into a game's `game/` folder, start a local TTS
-server, and press `V` in-game. Ren'Py self-voicing will use your local AI voice
-instead of the default system voice.
+## What You Need
 
-The `.rpy` file is the mechanics. The JSON file is the config.
+- A desktop Ren'Py game on Windows or Linux.
+- `renpy_universal_tts.rpy` and `renpy_universal_tts_config.json` in its `game/` folder.
+- **curl and ffplay** on the gaming computer. ffplay is included in FFmpeg builds.
+- One running **TTS server**, on that computer or another reachable machine.
 
-```text
-game/
-  renpy_universal_tts.rpy
-  renpy_universal_tts_config.json
-```
+The server runs the AI model and determines the CPU/GPU and memory requirements.
+The game-side script does not load model weights. Docker is needed only for the
+server installation routes that use it.
 
-Do not install multiple Ren'Py TTS replacement scripts at the same time.
+## Engines at a Glance
 
-## Demo videos
+Published quality references checked **2026-10-12**. GPU capacities below are
+starting budgets for TTS; allow extra memory for the game.
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <a href="https://youtu.be/Ru3-4g4P7zo">
-        <img src="https://img.youtube.com/vi/Ru3-4g4P7zo/hqdefault.jpg" width="360" alt="Qwen3 - Real-time voice cloning using custom audio">
-      </a>
-      <br>
-      <strong>👑Qwen3👑</strong>
-      <br>
-      Real-time voice cloning using custom audio
-    </td>
-    <td align="center" width="50%">
-      <a href="https://youtu.be/XkgfubdlFaU">
-        <img src="https://img.youtube.com/vi/XkgfubdlFaU/hqdefault.jpg" width="360" alt="Chatterbox - Real-time voice cloning using custom audio">
-      </a>
-      <br>
-      <strong>♕Chatterbox♕</strong>
-      <br>
-      Real-time voice cloning using custom audio
-    </td>
-  </tr>
-</table>
+| Engine / Model | Published Quality Reference | GPU / VRAM to Plan For | What It Offers | Setup |
+| --- | --- | --- | --- | --- |
+| **Breeze TTS 2** | **1222 AA Elo** | **8 GB NVIDIA** with the included INT8 server; **12 GB** official eager / **24 GB** official full fast path | Reference cloning, text-described voices, and delivery instructions; English/Chinese | [Breeze](docs/engines/breeze.md) |
+| **Kokoro 82M v1.0** | **1064 AA Elo** | **CPU supported**; about **4 GB** GPU budget | Ready-made voices and a GPU-free installation route | [Kokoro](docs/engines/kokoro.md) |
+| **Chatterbox Original** | **1026 AA Elo** | **8 GB** starting GPU budget; CPU also supported | Reference-file cloning and Original-model generation controls | [Chatterbox](docs/engines/chatterbox.md) |
+| **VibeVoice Realtime 0.5B** | **2.05% WER**, SEED test-en | **4 GB+ NVIDIA** recommended; about **2 GB** published usage | Streamed English speech with ready-made voice presets | [VibeVoice](docs/engines/vibevoice.md) |
+| **Qwen3-TTS 12Hz Base 0.6B** | **1.32% WER**, SEED test-en | **8 GB NVIDIA** demonstrated upstream | Reference cloning with the smaller Qwen Base model | [Qwen](docs/engines/qwen.md) |
+| **Qwen3-TTS 12Hz Base 1.7B** | **1.24% WER**, SEED test-en | **8 GB NVIDIA** demonstrated upstream | Reference cloning with the larger Qwen Base model | [Qwen](docs/engines/qwen.md) |
+| **Chatterbox Turbo / Multilingual** | [Publisher model demos](https://github.com/resemble-ai/chatterbox#-model-zoo) | **8 GB** starting server budget; CPU route available | Turbo reduces compute; Multilingual supports a wider language set | [Chatterbox](docs/engines/chatterbox.md) |
+| **Custom OpenAI-compatible** | Your selected model's rating | Your selected server's requirements | Use another compatible speech server | [Custom Server](docs/engines/custom.md) |
 
-## Fast Setup
+**AA Elo: higher is better** for listener preference. **WER: lower is better**
+for spoken-word accuracy. These are different measurements, not a shared ranking;
+Turbo/Multilingual have no matching score on the AA boards used here.
+Sources: [Artificial Analysis](https://artificialanalysis.ai/text-to-speech/leaderboard/provider-voice/open-weights),
+[Qwen evaluation](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base#evaluation),
+[Microsoft Realtime evaluation](https://github.com/microsoft/VibeVoice/blob/main/docs/vibevoice-realtime-0.5b.md#results).
 
-1. Copy these two files into the target game's `game/` folder:
+Breeze's rating is the upstream **Breeze TTS 2** model reference; the included
+INT8 server is its smaller-memory deployment option. Use **16 GB system RAM**
+as a project starting recommendation, or **32 GB** for more game/Docker headroom.
+See [memory sources, cloning scores, and measured local results](docs/ENGINE_COMPARISON.md)
+for the evidence behind each row and the effect of model/server settings.
 
-```text
-renpy_universal_tts.rpy
-renpy_universal_tts_config.json
-```
+## Set It Up
 
-2. Start your TTS server.
-3. Install `ffplay`.
-4. Edit only `renpy_universal_tts_config.json`.
-5. Start the game.
-6. Press `V` to turn AI self-voicing on.
-7. Press `V` again to turn it off.
-
-To switch engine, copy one of the example configs from `configs/` and rename it:
+1. Follow **one engine guide** above. Start its server and wait until its model is ready.
+2. Install FFmpeg, including ffplay, and curl. On Windows check `curl.exe --version`
+   and `ffplay.exe -version`; ffplay can also be placed beside the `.rpy` file.
+   On Debian/Ubuntu use `sudo apt install curl ffmpeg`.
+3. Copy `renpy_universal_tts.rpy` into the game's `game/` folder.
+4. Copy the chosen preset from `configs/` into that folder and rename it to
+   **`renpy_universal_tts_config.json`**. Replace its existing config if present.
+5. Edit the server URL and voice IDs as described in the engine guide. Start the
+   game and press **V**.
 
 ```text
-configs/vibevoice.json              -> renpy_universal_tts_config.json
-configs/kokoro.json                 -> renpy_universal_tts_config.json
-configs/kokoro_mp3.json             -> renpy_universal_tts_config.json
-configs/qwen.json                   -> renpy_universal_tts_config.json
-configs/chatterbox_predefined.json  -> renpy_universal_tts_config.json
-configs/chatterbox_clone.json       -> renpy_universal_tts_config.json
-configs/custom_openai.json          -> renpy_universal_tts_config.json
+YourGame/
+  game/
+    renpy_universal_tts.rpy
+    renpy_universal_tts_config.json
 ```
 
-## Install ffplay
+Install one TTS replacement script at a time. Most presets use port `8880`;
+Breeze uses `7860`. Servers sharing a port cannot run simultaneously unless you
+change their published ports and matching config URLs.
 
-Windows:
+## Pick a Preset
 
-- Install FFmpeg.
-- Put `ffplay.exe` on `PATH`, or put it next to `renpy_universal_tts.rpy`.
+| Preset | Purpose |
+| --- | --- |
+| [kokoro.json](configs/kokoro.json) | Kokoro raw PCM |
+| [kokoro_mp3.json](configs/kokoro_mp3.json) | Kokoro encoded MP3 fallback |
+| [vibevoice.json](configs/vibevoice.json) | VibeVoice Realtime PCM stream |
+| [qwen.json](configs/qwen.json) | Qwen registered voice IDs |
+| [chatterbox_predefined.json](configs/chatterbox_predefined.json) | Predefined files, PCM-capable server |
+| [chatterbox_clone.json](configs/chatterbox_clone.json) | Reference files, PCM-capable server |
+| [breeze.json](configs/breeze.json) | Breeze saved clones and optional direction |
+| [breeze_design.json](configs/breeze_design.json) | Breeze voices described in text |
+| [custom_openai.json](configs/custom_openai.json) | Other compatible speech APIs |
 
-Linux:
+Example names and custom voice IDs are placeholders. Reference audio is not bundled.
+Register your voices on the server before selecting them in a config.
+For stock Chatterbox WAV streaming, see the format change in its guide.
 
-```bash
-sudo apt install curl ffmpeg
-```
+## Change Character Voices
 
-## Start VibeVoice
-
-```powershell
-git clone https://github.com/balu100/vibevoice-realtime-openai-api
-cd vibevoice-realtime-openai-api
-docker compose up -d --build
-```
-
-You can edit the Compose file's `default_volume_multiplier=3.0` value to your
-liking for louder or quieter sounds.
-
-Use:
-
-```text
-configs/vibevoice.json
-```
-
-VibeVoice voices:
-
-```text
-Carter (Male)
-Davis (Main narrator)
-Emma (Female)
-Frank (Australian)
-Grace (Soft male)
-Mike (Narrator)
-Samuel (Indian)
-```
-
-OpenAI-style aliases:
-
-```text
-alloy, echo, fable, onyx, nova, shimmer
-```
-
-## Start Kokoro
-
-CPU:
-
-```powershell
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
-```
-
-NVIDIA GPU:
-
-```powershell
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
-```
-
-You can add `-e default_volume_multiplier=3.0` for louder sounds.
-
-Use:
-
-```text
-configs/kokoro.json
-```
-
-If your Kokoro server does not support raw PCM streaming, use:
-
-```text
-configs/kokoro_mp3.json
-```
-
-Kokoro voices with quality grades:
-
-```text
-af_heart (A)
-af_alloy (C)
-af_aoede (C+)
-af_bella (A-)
-af_jessica (D)
-af_kore (C+)
-af_nicole (B-)
-af_nova (C)
-af_river (D)
-af_sarah (C+)
-af_sky (C-)
-am_adam (F+)
-am_echo (D)
-am_eric (D)
-am_fenrir (C+)
-am_liam (D)
-am_michael (C+)
-am_onyx (D)
-am_puck (C+)
-am_santa (D-)
-```
-
-## Start Qwen3-TTS
-
-Start the faster-qwen3-tts OpenAI-compatible server:
-
-```powershell
-git clone https://github.com/balu100/faster-qwen3-tts
-cd faster-qwen3-tts
-docker compose up
-```
-
-Use:
-
-```text
-configs/qwen.json
-```
-
-Qwen voice IDs come from your own `voices.json`. The example config uses
-`d01`, `d03`, and `d12`.
-
-To add voices, put the reference audio files in:
-
-```text
-faster-qwen3-tts/reference_audio/
-```
-
-Then add matching entries to:
-
-```text
-faster-qwen3-tts/voices.json
-```
-
-If you want the 0.6B model, edit the Dockerfile and change:
-
-```text
-Qwen/Qwen3-TTS-12Hz-1.7B-Base
-```
-
-to:
-
-```text
-Qwen/Qwen3-TTS-12Hz-0.6B-Base
-```
-
-For raw PCM streaming, Qwen uses:
+For OpenAI-compatible presets, an unmatched speaker uses `default_voice`:
 
 ```json
-"response_format": "pcm"
-```
-
-Do not add `"stream": true` unless your Qwen server explicitly supports it.
-
-## Start Chatterbox
-
-Start Chatterbox-TTS-Server, then open:
-
-```text
-http://localhost:8880/docs
-```
-
-Use predefined voices:
-
-```text
-configs/chatterbox_predefined.json
-```
-
-Use reference audio / voice cloning:
-
-```text
-configs/chatterbox_clone.json
-```
-
-Native Chatterbox streaming uses:
-
-```json
-"stream": true,
-"chunk_size": 50,
-"split_text": true
-```
-
-Streaming on the native `/tts` endpoint requires a Chatterbox server build that
-supports `stream: true`. If your server does not support it yet, set
-`"stream": false` in the Chatterbox config.
-
-### Character Voice Cloning
-
-Chatterbox can use reference audio files for cloned character voices.
-
-Ren'Py Universal TTS does not upload reference audio. Put reference `.wav` or
-`.mp3` files into the Chatterbox server's own `reference_audio` folder, then
-map game speakers to those filenames in `renpy_universal_tts_config.json`.
-
-```text
-Chatterbox-TTS-Server/
-  reference_audio/
-    alice_reference.wav
-    bob_reference.wav
-
-game/
-  renpy_universal_tts.rpy
-  renpy_universal_tts_config.json
-```
-
-Use only the filename in the config, not a full path and not a file from the
-Ren'Py game folder.
-
-```json
-"profiles": {
-  "Alice": {
-    "voice_mode": "clone",
-    "reference_audio_filename": "alice_reference.wav"
-  },
-  "Bob": {
-    "voice_mode": "clone",
-    "reference_audio_filename": "bob_reference.wav"
-  }
-}
-```
-
-This lets each character use a different cloned voice. Voice quality depends on
-the reference audio and the Chatterbox server settings.
-
-You can also tune a cloned profile with Chatterbox generation settings:
-
-```json
-"Alice": {
-  "voice_mode": "clone",
-  "reference_audio_filename": "alice_reference.wav",
-  "exaggeration": 1.2,
-  "seed": 3000
-}
-```
-
-For predefined voices, use filenames from the Chatterbox `voices` folder:
-
-```json
-"Bob": {
-  "voice_mode": "predefined",
-  "predefined_voice_id": "Michael.wav"
-}
-```
-
-If your Chatterbox build does not support raw PCM, set:
-
-```json
-"audio": {
-  "raw_pcm": false
-},
-"chatterbox": {
-  "output_format": "wav"
-}
-```
-
-## Change Voices
-
-For VibeVoice, Kokoro, Qwen, and other OpenAI-compatible servers:
-
-```json
-"default_voice": "Emma",
+"default_voice": "af_heart",
 "voices": {
-  "Narrator": "Davis",
-  "Alice": "Emma",
-  "Bob": "Carter"
+  "ExampleName1": "af_bella",
+  "ExampleName2": "am_puck"
 }
 ```
 
-For Chatterbox:
+Replace the example names with the displayed speaker names in your game.
+For Chatterbox references and Breeze instructions, use their engine guides.
+[Config Examples](CONFIG_EXAMPLES.md) explains inheritance and advanced fields.
 
-```json
-"profiles": {
-  "Narrator": {
-    "voice_mode": "predefined",
-    "predefined_voice_id": "Emily.wav"
-  },
-  "Alice": {
-    "voice_mode": "clone",
-    "reference_audio_filename": "alice_reference.wav"
-  }
-}
-```
-
-Speaker names must match the names the game shows in dialogue.
-
-## Speaker Name Reading
+Speaker-name reading uses:
 
 ```json
 "speaker_name_mode": "on_speaker_change"
 ```
 
-Options:
+| Value | Result |
+| --- | --- |
+| `on_speaker_change` | Read the name when the speaker changes |
+| `always` | Read the name on every line |
+| `never` | Read only the dialogue |
 
-```text
-always             read the speaker name every line
-never              never read speaker names
-on_speaker_change  read the name only when the speaker changes
-```
+## Playback and Compatibility
 
-Example with `on_speaker_change`:
+Audio streams through external ffplay. It has its own volume; the game's voice
+slider does not control it. Set `tools.ffplay_volume` between `0` and `100` if needed.
+New dialogue interrupts the previous line. Audio is generated again on each
+request; this version does not maintain an audio cache.
 
-```text
-Alice: Hello.      -> Alice. Hello.
-Alice: Come here.  -> Come here.
-Bob: Wait.         -> Bob. Wait.
-```
+Missing or invalid configs leave the game's original self-voicing handler in
+place. Errors are recorded in `game/renpy_universal_tts_debug.log`.
 
-## More Help
+This is a desktop drop-in mod, not a guarantee for every game's custom dialogue
+screens. See [Compatibility](docs/COMPATIBILITY.md) for test coverage.
 
-- See `CONFIG_EXAMPLES.md` for the config layout.
-- See `TROUBLESHOOTING.md` if the server works but Ren'Py has no sound.
+## Help and Development
 
-Useful log lines in `log.txt`:
-
-```text
-UNIVERSAL TTS: config loaded
-UNIVERSAL TTS: stream MISS
-UNIVERSAL TTS: request built
-UNIVERSAL TTS: pipe started
-UNIVERSAL TTS: pipe finished
-```
-
-If `log.txt` does not show these lines, check:
-
-```text
-game/renpy_universal_tts_debug.log
-```
+- [Troubleshooting](TROUBLESHOOTING.md): config, server, tool, and audio errors.
+- [Config Examples](CONFIG_EXAMPLES.md): all optional settings.
+- [Development](docs/DEVELOPMENT.md): tests, release packaging, and benchmarks.

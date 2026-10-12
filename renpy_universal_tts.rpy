@@ -11,6 +11,8 @@ init 999 python:
     import time
     import tempfile
     import subprocess
+    import math
+    import difflib
 
     try:
         import threading
@@ -19,8 +21,10 @@ init 999 python:
 
     try:
         text_type = unicode
+        string_types = (str, unicode)
     except NameError:
         text_type = str
+        string_types = (str,)
 
     try:
         _universal_tts_state_base = NoRollback
@@ -119,8 +123,9 @@ init 999 python:
             universal_tts_add_unique_path(paths, os.path.join(basedir, "game", UNIVERSAL_TTS_CONFIG_FILENAME))
             universal_tts_add_unique_path(paths, os.path.join(basedir, "game", "renpyuniversaltts", UNIVERSAL_TTS_CONFIG_FILENAME))
 
-        universal_tts_add_unique_path(paths, os.path.join(os.getcwd(), UNIVERSAL_TTS_CONFIG_FILENAME))
-        universal_tts_add_unique_path(paths, os.path.join(os.getcwd(), "renpyuniversaltts", UNIVERSAL_TTS_CONFIG_FILENAME))
+        if not gamedir and not basedir:
+            universal_tts_add_unique_path(paths, os.path.join(os.getcwd(), UNIVERSAL_TTS_CONFIG_FILENAME))
+            universal_tts_add_unique_path(paths, os.path.join(os.getcwd(), "renpyuniversaltts", UNIVERSAL_TTS_CONFIG_FILENAME))
 
         return paths
 
@@ -147,6 +152,169 @@ init 999 python:
 
     def universal_tts_is_mapping(value):
         return hasattr(value, "get") and hasattr(value, "keys")
+
+
+    def universal_tts_validate_config(data):
+        errors = []
+
+        def object_at(value, path):
+            if not universal_tts_is_mapping(value):
+                errors.append(path + " must be a JSON object")
+                return {}
+            return value
+
+        def known_keys(value, allowed, path):
+            for key in value.keys():
+                if key not in allowed:
+                    suggestion = difflib.get_close_matches(key, allowed, n=1)
+                    hint = "; did you mean " + suggestion[0] + "?" if suggestion else ""
+                    errors.append(path + "." + key + " is unknown" + hint)
+
+        def nonempty(value, path):
+            if not isinstance(value, string_types) or not value.strip():
+                errors.append(path + " must be a non-empty string")
+
+        def boolean(value, path):
+            if value is not True and value is not False:
+                errors.append(path + " must be true or false")
+
+        def number(value, path, minimum=None, integer=False):
+            try:
+                converted = float(value)
+                valid = not isinstance(value, (bool,) + string_types) and not math.isnan(converted) and not math.isinf(converted)
+                valid = valid and (minimum is None or converted >= minimum)
+                valid = valid and (not integer or converted == int(converted))
+            except (TypeError, ValueError, OverflowError):
+                valid = False
+            if not valid:
+                errors.append(path + " must be a valid " + ("integer" if integer else "number") + (" >= " + str(minimum) if minimum is not None else ""))
+
+        def extras(value, path):
+            value = object_at(value, path)
+            for key in ("input", "voice", "model", "response_format"):
+                if key in value:
+                    errors.append(path + "." + key + " must be set in its dedicated config field")
+            if value.get("stream_format") == "sse":
+                errors.append(path + ".stream_format must be audio; ffplay cannot decode SSE events")
+            return value
+
+        data = object_at(data, "config")
+        known_keys(data, ("enabled", "engine", "speaker_name_mode", "tools", "audio", "network", "request", "request_type", "openai", "chatterbox", "default_voice", "voices"), "config")
+        if "enabled" in data:
+            boolean(data["enabled"], "enabled")
+        if data.get("enabled") is False:
+            return errors
+        mode = data.get("speaker_name_mode", "on_speaker_change")
+        valid_modes = ("true", "yes", "always", "on", "false", "no", "never", "off", "on speaker change", "on speaker changes", "on speaker changed", "on speakerchange", "onspeakerchange", "speaker change", "speaker changes", "when speaker changes", "when the speaker changes", "when it changes", "when changes", "on change", "change", "changes")
+        if mode is not None and not isinstance(mode, bool) and universal_tts_to_text(mode).lower().replace("_", " ").replace("-", " ") not in valid_modes:
+            errors.append("speaker_name_mode must be always, never, or on_speaker_change")
+
+        request = object_at(data.get("request", {}), "request")
+        known_keys(request, ("type",), "request")
+        request_type = request.get("type", data.get("request_type", "chatterbox_tts" if data.get("engine") == "chatterbox" else "openai"))
+        request_type = universal_tts_to_text(request_type).strip().lower().replace("-", "_").replace(" ", "_")
+        if request_type not in ("openai", "openai_tts", "chatterbox", "chatterbox_tts", "tts"):
+            errors.append("request.type must be openai or chatterbox_tts")
+
+        audio = object_at(data.get("audio", {}), "audio")
+        known_keys(audio, ("raw_pcm", "sample_format", "sample_rate", "channel_layout"), "audio")
+        if "raw_pcm" in audio:
+            boolean(audio["raw_pcm"], "audio.raw_pcm")
+        if "sample_rate" in audio:
+            number(audio["sample_rate"], "audio.sample_rate", 1, True)
+        for key in ("sample_format", "channel_layout"):
+            if key in audio:
+                nonempty(audio[key], "audio." + key)
+
+        tools = object_at(data.get("tools", {}), "tools")
+        known_keys(tools, ("curl_path", "ffplay_path", "ffplay_loglevel", "ffplay_channel_option", "ffplay_volume", "ffplay_extra_args"), "tools")
+        for key in ("curl_path", "ffplay_path"):
+            if key in tools:
+                nonempty(tools[key], "tools." + key)
+        if tools.get("ffplay_volume") is not None:
+            number(tools["ffplay_volume"], "tools.ffplay_volume", 0, True)
+            if isinstance(tools["ffplay_volume"], (int, float)) and tools["ffplay_volume"] > 100:
+                errors.append("tools.ffplay_volume must be between 0 and 100")
+        if "ffplay_extra_args" in tools and (not isinstance(tools["ffplay_extra_args"], (list, tuple)) or not all(isinstance(arg, string_types) for arg in tools["ffplay_extra_args"])):
+            errors.append("tools.ffplay_extra_args must be an array of strings")
+
+        network = object_at(data.get("network", {}), "network")
+        known_keys(network, ("connect_timeout", "request_timeout", "busy_retry_seconds"), "network")
+        for key in ("connect_timeout", "request_timeout", "busy_retry_seconds"):
+            if key in network:
+                number(network[key], "network." + key, 0 if key == "busy_retry_seconds" else 0.1)
+
+        native = request_type in ("chatterbox", "chatterbox_tts", "tts")
+        if native:
+            section = object_at(data.get("chatterbox", {}), "chatterbox")
+            known_keys(section, ("url", "output_format", "stream", "split_text", "chunk_size", "language", "default_profile", "profiles"), "chatterbox")
+            default = object_at(section.get("default_profile", {}), "chatterbox.default_profile")
+            profiles = object_at(section.get("profiles", {}), "chatterbox.profiles")
+            allowed_profile = ("voice_mode", "predefined_voice_id", "reference_audio_filename", "temperature", "exaggeration", "cfg_weight", "seed", "speed_factor", "language", "stream", "split_text", "chunk_size")
+            for name, profile in [(None, default)] + list(profiles.items()):
+                path = "chatterbox.default_profile" if name is None else "chatterbox.profiles." + universal_tts_to_text(name)
+                if name is not None:
+                    nonempty(name, path + " speaker name")
+                if isinstance(profile, string_types):
+                    profile = {"voice_mode": "predefined", "predefined_voice_id": profile}
+                profile = object_at(profile, path)
+                known_keys(profile, allowed_profile, path)
+                merged = dict(default)
+                merged.update(profile)
+                mode = merged.get("voice_mode", "predefined")
+                if mode not in ("clone", "predefined"):
+                    errors.append(path + ".voice_mode must be clone or predefined")
+                else:
+                    key = "reference_audio_filename" if mode == "clone" else "predefined_voice_id"
+                    nonempty(merged.get(key), path + "." + key)
+                for key in ("temperature", "exaggeration", "cfg_weight", "speed_factor", "seed", "chunk_size"):
+                    if key in merged:
+                        number(merged[key], path + "." + key, 0.01 if key in ("speed_factor", "chunk_size") else None, key in ("seed", "chunk_size"))
+                for key in ("stream", "split_text"):
+                    if key in merged:
+                        boolean(merged[key], path + "." + key)
+            for key in ("stream", "split_text"):
+                if key in section:
+                    boolean(section[key], "chatterbox." + key)
+            if "chunk_size" in section:
+                number(section["chunk_size"], "chatterbox.chunk_size", 1, True)
+            format_name = section.get("output_format", "pcm")
+        else:
+            section = object_at(data.get("openai", {}), "openai")
+            known_keys(section, ("url", "model", "response_format", "stream", "speed", "extra_body"), "openai")
+            nonempty(section.get("model"), "openai.model")
+            global_extra = extras(section.get("extra_body", {}), "openai.extra_body")
+            if "stream" in section:
+                boolean(section["stream"], "openai.stream")
+            if section.get("speed") is not None:
+                number(section["speed"], "openai.speed", 0.01)
+            profiles = object_at(data.get("voices", {}), "voices")
+            entries = [(None, data.get("default_voice"))] + list(profiles.items())
+            for name, profile in entries:
+                path = "default_voice" if name is None else "voices." + universal_tts_to_text(name)
+                if name is not None:
+                    nonempty(name, path + " speaker name")
+                extra = dict(global_extra)
+                if universal_tts_is_mapping(profile):
+                    known_keys(profile, ("voice", "extra_body"), path)
+                    extra.update(extras(profile.get("extra_body", {}), path + ".extra_body"))
+                    voice = profile.get("voice", data.get("default_voice"))
+                else:
+                    voice = profile
+                if voice is not None:
+                    nonempty(voice, path + ".voice" if universal_tts_is_mapping(profile) else path)
+                elif not isinstance(extra.get("instructions"), string_types) or not extra["instructions"].strip():
+                    errors.append(path + " needs a voice ID or extra_body.instructions for voice design")
+            format_name = section.get("response_format", "pcm")
+
+        url = section.get("url", "")
+        if not isinstance(url, string_types) or not re.match(r"^https?://[^/\s]+", url):
+            errors.append(("chatterbox" if native else "openai") + ".url must be an http:// or https:// endpoint")
+        if format_name not in ("pcm", "wav", "mp3", "opus", "aac", "flac"):
+            errors.append("audio response format is unsupported")
+        if "raw_pcm" in audio and audio["raw_pcm"] != (format_name == "pcm"):
+            errors.append("audio.raw_pcm must be true for pcm and false for encoded audio")
+        return errors
 
 
     def universal_tts_load_config():
@@ -182,6 +350,11 @@ init 999 python:
 
             UNIVERSAL_TTS_CONFIG = data
             UNIVERSAL_TTS_CONFIG_PATH = path
+            errors = universal_tts_validate_config(data)
+            if errors:
+                UNIVERSAL_TTS_CONFIG_ERROR = "; ".join(errors)
+                universal_tts_debug("UNIVERSAL TTS ERROR: invalid config | %s" % UNIVERSAL_TTS_CONFIG_ERROR)
+                return
             UNIVERSAL_TTS_CONFIG_ERROR = None
             universal_tts_debug("UNIVERSAL TTS: config loaded | path=%r" % path)
             return
@@ -286,6 +459,7 @@ init 999 python:
             self.pending_speaker = None
             self.process = None
             self.request_file = None
+            self.error_notified = False
 
             if threading is not None:
                 self.lock = threading.RLock()
@@ -549,7 +723,7 @@ init 999 python:
 
 
     def universal_tts_possible_executable_paths(configured, fallback):
-        configured = universal_tts_clean_text(configured)
+        configured = universal_tts_to_text(configured).strip()
 
         if not configured:
             configured = fallback
@@ -641,7 +815,11 @@ init 999 python:
 
     def universal_tts_raw_pcm_enabled():
         audio = universal_tts_audio()
-        return universal_tts_bool(audio.get("raw_pcm", False), False)
+        if "raw_pcm" in audio:
+            return universal_tts_bool(audio.get("raw_pcm"), False)
+        native = universal_tts_request_type() in ("chatterbox", "chatterbox_tts", "tts")
+        section = universal_tts_section("chatterbox" if native else "openai")
+        return section.get("output_format" if native else "response_format", "pcm") == "pcm"
 
 
     def universal_tts_ffplay_command():
@@ -690,10 +868,11 @@ init 999 python:
 
     def universal_tts_openai_payload(text, speaker):
         openai = universal_tts_section("openai")
-        url = universal_tts_clean_text(openai.get("url", ""))
+        url = universal_tts_to_text(openai.get("url", "")).strip()
         model = openai.get("model", None)
-        voice = universal_tts_voice_for_speaker(speaker)
-        response_format = openai.get("response_format", None)
+        profile = universal_tts_voice_for_speaker(speaker)
+        voice = profile.get("voice", UNIVERSAL_TTS_CONFIG.get("default_voice")) if universal_tts_is_mapping(profile) else profile
+        response_format = openai.get("response_format", "pcm")
 
         if not url:
             raise ValueError("openai.url is missing")
@@ -701,18 +880,17 @@ init 999 python:
         if model is None:
             raise ValueError("openai.model is missing")
 
-        if voice is None:
-            raise ValueError("default_voice or voices mapping is missing")
-
         if response_format is None:
             raise ValueError("openai.response_format is missing")
 
         payload = {
             "model": model,
-            "voice": voice,
             "input": text,
             "response_format": response_format,
         }
+
+        if voice is not None:
+            payload["voice"] = voice
 
         if "stream" in openai:
             payload["stream"] = universal_tts_bool(openai.get("stream"), False)
@@ -726,12 +904,19 @@ init 999 python:
             for key, value in extra_body.items():
                 payload[key] = value
 
+        if universal_tts_is_mapping(profile):
+            for key, value in profile.get("extra_body", {}).items():
+                payload[key] = value
+
+        if voice is None and not payload.get("instructions"):
+            raise ValueError("voice design needs extra_body.instructions")
+
         return payload, url, "openai voice=%r" % voice
 
 
     def universal_tts_chatterbox_payload(text, speaker):
         chatterbox = universal_tts_section("chatterbox")
-        url = universal_tts_clean_text(chatterbox.get("url", ""))
+        url = universal_tts_to_text(chatterbox.get("url", "")).strip()
         profile = universal_tts_chatterbox_profile_for_speaker(speaker)
 
         if not url:
@@ -750,8 +935,7 @@ init 999 python:
             "voice_mode": voice_mode,
         }
 
-        if chatterbox.get("output_format", None) is not None:
-            payload["output_format"] = chatterbox.get("output_format")
+        payload["output_format"] = chatterbox.get("output_format", "pcm")
 
         for key in ("stream", "split_text", "chunk_size", "language"):
             if key in chatterbox:
@@ -823,10 +1007,19 @@ init 999 python:
 
 
     def universal_tts_curl_command(request_file, url):
+        network = universal_tts_section("network")
         return [
             universal_tts_find_curl_path(),
-            "-sN",
-            "--json",
+            "--fail",
+            "--silent",
+            "--show-error",
+            "--no-buffer",
+            "--location",
+            "--max-redirs", "3",
+            "--connect-timeout", str(network.get("connect_timeout", 5)),
+            "--max-time", str(network.get("request_timeout", 120)),
+            "--header", "Content-Type: application/json",
+            "--data-binary",
             "@" + request_file,
             url,
         ]
@@ -926,10 +1119,15 @@ init 999 python:
         curl_command = universal_tts_curl_command(request_file, url)
         ffplay_command = universal_tts_ffplay_command()
         devnull = open(os.devnull, "wb")
+        curl_errors = tempfile.TemporaryFile(mode="w+b")
+        player_errors = tempfile.TemporaryFile(mode="w+b")
+        headers = tempfile.NamedTemporaryFile(prefix="renpy_universal_tts_headers_", delete=False)
+        headers_path = headers.name
+        headers.close()
+        curl_command.extend(["--dump-header", headers_path])
         curl_process = None
 
         kwargs = {
-            "stderr": devnull,
             "bufsize": 0,
         }
         kwargs.update(universal_tts_subprocess_kwargs())
@@ -939,17 +1137,22 @@ init 999 python:
                 curl_command,
                 stdin=devnull,
                 stdout=subprocess.PIPE,
+                stderr=curl_errors,
                 **kwargs
             )
             ffplay_process = subprocess.Popen(
                 ffplay_command,
                 stdin=curl_process.stdout,
                 stdout=devnull,
+                stderr=player_errors,
                 **kwargs
             )
             universal_tts_close_quietly(curl_process.stdout)
             ffplay_process._universal_tts_curl_process = curl_process
             ffplay_process._universal_tts_devnull = devnull
+            ffplay_process._universal_tts_curl_errors = curl_errors
+            ffplay_process._universal_tts_player_errors = player_errors
+            ffplay_process._universal_tts_headers_path = headers_path
             universal_tts_debug("UNIVERSAL TTS: pipe started | curl=%r | ffplay=%r" % (
                 curl_command,
                 ffplay_command,
@@ -964,9 +1167,65 @@ init 999 python:
 
             if curl_process is not None:
                 universal_tts_terminate_process(curl_process)
+                universal_tts_reap_process(curl_process)
 
             universal_tts_close_quietly(devnull)
+            universal_tts_close_quietly(curl_errors)
+            universal_tts_close_quietly(player_errors)
+            universal_tts_delete_request_file(headers_path)
             raise
+
+
+    def universal_tts_pipeline_status(process):
+        path = getattr(process, "_universal_tts_headers_path", None)
+        try:
+            handle = open(path, "rb")
+            try:
+                headers = handle.read().decode("latin-1")
+            finally:
+                handle.close()
+            statuses = re.findall(r"(?m)^HTTP/\S+\s+(\d+)", headers)
+            return int(statuses[-1]) if statuses else None
+        except Exception:
+            return None
+
+
+    def universal_tts_reap_process(process):
+        if process is None:
+            return
+        deadline = time.time() + 0.5
+        while process.poll() is None and time.time() < deadline:
+            time.sleep(0.01)
+        if process.poll() is None:
+            try:
+                process.kill()
+            except Exception:
+                pass
+            deadline = time.time() + 0.5
+            while process.poll() is None and time.time() < deadline:
+                time.sleep(0.01)
+
+
+    def universal_tts_report_pipeline(process):
+        curl_process = getattr(process, "_universal_tts_curl_process", None)
+        curl_code = curl_process.poll() if curl_process is not None else None
+        player_code = process.poll()
+        status = universal_tts_pipeline_status(process)
+        failed = curl_code not in (None, 0) or player_code not in (None, 0) or (status is not None and not 200 <= status < 300)
+        for name in ("curl_errors", "player_errors"):
+            handle = getattr(process, "_universal_tts_" + name, None)
+            try:
+                handle.seek(0)
+                message = handle.read(8192).decode("utf-8", "replace").strip()
+                if message:
+                    universal_tts_debug("UNIVERSAL TTS %s: %s | %s" % ("ERROR" if failed else "INFO", name, message))
+            except Exception:
+                pass
+        universal_tts_debug("UNIVERSAL TTS: pipe result | HTTP=%r | curl=%r | ffplay=%r" % (status, curl_code, player_code))
+        if failed:
+            hints = {404: "Check the endpoint and voice ID.", 409: "The TTS server is still busy with the previous line.", 422: "The server rejected the voice or request settings.", 429: "The server is rate limited.", 503: "The TTS model is not ready; check server logs and free VRAM."}
+            universal_tts_debug("UNIVERSAL TTS ERROR: %s" % hints.get(status, "Check the server and tool errors above."))
+        return status, failed
 
 
     def universal_tts_close_process_handles(process):
@@ -978,6 +1237,9 @@ init 999 python:
         if curl_process is not None:
             if curl_process.poll() is None:
                 universal_tts_terminate_process(curl_process)
+            universal_tts_reap_process(curl_process)
+
+        universal_tts_reap_process(process)
 
         try:
             stdin = getattr(process, "stdin", None)
@@ -991,26 +1253,17 @@ init 999 python:
 
         devnull = getattr(process, "_universal_tts_devnull", None)
         universal_tts_close_quietly(devnull)
-
-
-    def universal_tts_stop_playback(reason):
-        process, request_file = universal_tts_take_current_process()
-
-        if process is not None:
-            universal_tts_terminate_process(process)
-            universal_tts_close_process_handles(process)
-
-        universal_tts_delete_request_file(request_file)
-        renpy.log("UNIVERSAL TTS: stopped playback | %s" % reason)
+        for name in ("curl_errors", "player_errors"):
+            universal_tts_close_quietly(getattr(process, "_universal_tts_" + name, None))
+        universal_tts_delete_request_file(getattr(process, "_universal_tts_headers_path", None))
 
 
     def universal_tts_stream_to_ffplay(text, speaker, request_id):
         request_file = None
         process = None
-        finished_normally = False
 
         audio = universal_tts_audio()
-        renpy.log("UNIVERSAL TTS: stream MISS | request=%r | speaker=%r | text=%r" % (
+        renpy.log("UNIVERSAL TTS: stream start | request=%r | speaker=%r | text=%r" % (
             request_id,
             speaker,
             text,
@@ -1023,33 +1276,54 @@ init 999 python:
         ))
 
         try:
+            if not universal_tts_request_is_active(request_id):
+                return
             request_file, url, descriptor = universal_tts_write_request_file(text, speaker)
             renpy.log("UNIVERSAL TTS: request built | type=%r | %s" % (
                 universal_tts_request_type(),
                 descriptor,
             ))
-            process = universal_tts_start_pipeline(request_file, url)
+            retry_deadline = time.time() + universal_tts_section("network").get("busy_retry_seconds", 3)
+            while universal_tts_request_is_active(request_id):
+                process = universal_tts_start_pipeline(request_file, url)
+                if not universal_tts_set_current_process(request_id, process, request_file):
+                    renpy.log("UNIVERSAL TTS: stale pipe ignored before playback | request=%r" % request_id)
+                    return
 
-            if not universal_tts_set_current_process(request_id, process, request_file):
-                renpy.log("UNIVERSAL TTS: stale pipe ignored before playback | request=%r" % request_id)
+                while process.poll() is None and universal_tts_request_is_active(request_id):
+                    time.sleep(0.02)
+
+                if not universal_tts_request_is_active(request_id):
+                    renpy.log("UNIVERSAL TTS: pipe canceled | request=%r" % request_id)
+                    return
+
+                curl_process = process._universal_tts_curl_process
+                exit_deadline = time.time() + 0.5
+                while curl_process.poll() is None and time.time() < exit_deadline and universal_tts_request_is_active(request_id):
+                    time.sleep(0.01)
+                if not universal_tts_request_is_active(request_id):
+                    return
+                if curl_process.poll() is None:
+                    universal_tts_terminate_process(curl_process)
+
+                status, failed = universal_tts_report_pipeline(process)
+                universal_tts_clear_current_process(request_id, process)
+                universal_tts_close_process_handles(process)
+                process = None
+                if status == 409 and time.time() < retry_deadline:
+                    renpy.log("UNIVERSAL TTS: busy retry | request=%r" % request_id)
+                    pause_until = min(time.time() + 0.25, retry_deadline)
+                    while time.time() < pause_until and universal_tts_request_is_active(request_id):
+                        time.sleep(0.02)
+                    continue
+                if failed:
+                    raise RuntimeError("TTS pipe failed (HTTP %r); see renpy_universal_tts_debug.log" % status)
+                renpy.log("UNIVERSAL TTS: pipe finished")
                 return
-
-            while process.poll() is None and universal_tts_request_is_active(request_id):
-                time.sleep(0.05)
-
-            if not universal_tts_request_is_active(request_id):
-                renpy.log("UNIVERSAL TTS: pipe canceled | request=%r" % request_id)
-                return
-
-            if process.poll() not in (0, None):
-                renpy.log("UNIVERSAL TTS: pipe exited with code %r" % process.poll())
-
-            renpy.log("UNIVERSAL TTS: pipe finished")
-            finished_normally = True
         finally:
             universal_tts_clear_current_process(request_id, process)
 
-            if process is not None and not finished_normally:
+            if process is not None:
                 universal_tts_terminate_process(process)
 
             universal_tts_close_process_handles(process)
@@ -1064,13 +1338,17 @@ init 999 python:
                 state.request_id += 1
                 state.active_id = state.request_id
                 state.pending = None
+                process, request_file = universal_tts_take_current_process()
                 state.condition.notify()
+        else:
+            process, request_file = universal_tts_take_current_process()
 
         if reset_speaker:
             state.last_spoken_speaker = None
             state.pending_speaker = None
 
-        universal_tts_stop_playback(reason)
+        universal_tts_terminate_process(process)
+        renpy.log("UNIVERSAL TTS: stopped playback | %s" % reason)
 
 
     def universal_tts_worker_loop(state):
@@ -1135,10 +1413,12 @@ init 999 python:
             state.request_id += 1
             request_id = state.request_id
             state.active_id = request_id
+            # Detach the old pipe before waking the worker so cancellation cannot stop the new one.
+            process, request_file = universal_tts_take_current_process()
             state.pending = (request_id, text, speaker)
             state.condition.notify()
 
-        universal_tts_stop_playback("new TTS request")
+        universal_tts_terminate_process(process)
 
         universal_tts_debug("UNIVERSAL TTS: queued | request=%r | speaker=%r | text=%r" % (
             request_id,
@@ -1188,6 +1468,15 @@ init 999 python:
         raw_mode = universal_tts_self_voicing_mode()
         active = universal_tts_speech_mode_active()
 
+        if not universal_tts_enabled():
+            if UNIVERSAL_TTS_CONFIG_ERROR and active and not state.error_notified:
+                state.error_notified = True
+                try:
+                    renpy.notify("Universal TTS config error. See renpy_universal_tts_debug.log.")
+                except Exception:
+                    pass
+            return
+
         if getattr(config, "tts_function", None) is not universal_tts_function:
             universal_tts_debug("UNIVERSAL TTS: config.tts_function was changed at runtime, patching it again | current=%r" % getattr(config, "tts_function", None))
             config.tts_function = universal_tts_function
@@ -1218,17 +1507,20 @@ init 999 python:
     except Exception as e:
         renpy.log("UNIVERSAL TTS: periodic watcher registration failed: %r" % e)
 
-    config.tts_function = universal_tts_function
-
-    universal_tts_debug("UNIVERSAL TTS: config.tts_function patched | engine=%r | request_type=%r" % (
-        universal_tts_engine(),
-        universal_tts_request_type(),
-    ))
+    if universal_tts_enabled():
+        config.tts_function = universal_tts_function
+        universal_tts_debug("UNIVERSAL TTS: config.tts_function patched | engine=%r | request_type=%r" % (
+            universal_tts_engine(),
+            universal_tts_request_type(),
+        ))
+    else:
+        universal_tts_debug("UNIVERSAL TTS: preserving original self-voicing | config disabled or invalid")
 
 
 init 2000 python:
     try:
-        config.tts_function = universal_tts_function
-        universal_tts_debug("UNIVERSAL TTS: config.tts_function late patch | current=%r" % config.tts_function)
+        if universal_tts_enabled():
+            config.tts_function = universal_tts_function
+            universal_tts_debug("UNIVERSAL TTS: config.tts_function late patch | current=%r" % config.tts_function)
     except Exception as e:
         universal_tts_debug("UNIVERSAL TTS: config.tts_function late patch failed: %r" % e)

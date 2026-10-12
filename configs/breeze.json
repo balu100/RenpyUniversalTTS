@@ -1,0 +1,31 @@
+{
+  "enabled": true,
+  "engine": "breeze",
+  "speaker_name_mode": "on_speaker_change",
+  "request": {
+    "type": "openai"
+  },
+  "openai": {
+    "url": "http://127.0.0.1:7860/v1/audio/speech",
+    "model": "tts-1",
+    "response_format": "pcm",
+    "stream": true,
+    "extra_body": {
+      "stream_format": "audio",
+      "guidance_scale": 1,
+      "seed": 42
+    }
+  },
+  "default_voice": "clone:example_narrator",
+  "voices": {
+    "Narrator": "clone:example_narrator",
+    "ExampleName1": "clone:example_character",
+    "ExampleName2": {
+      "voice": "clone:example_character",
+      "extra_body": {
+        "instructions": "Speak calmly and thoughtfully.",
+        "guidance_scale": 4
+      }
+    }
+  }
+}

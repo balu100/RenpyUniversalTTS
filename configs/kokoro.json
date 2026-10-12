@@ -2,20 +2,6 @@
   "enabled": true,
   "engine": "kokoro",
   "speaker_name_mode": "on_speaker_change",
-  "tools": {
-    "curl_path": "curl",
-    "ffplay_path": "ffplay",
-    "ffplay_loglevel": "error",
-    "ffplay_channel_option": "ch_layout",
-    "ffplay_volume": null,
-    "ffplay_extra_args": []
-  },
-  "audio": {
-    "raw_pcm": true,
-    "sample_format": "s16le",
-    "sample_rate": 24000,
-    "channel_layout": "mono"
-  },
   "request": {
     "type": "openai"
   },
@@ -30,7 +16,7 @@
   "default_voice": "af_heart",
   "voices": {
     "Narrator": "af_heart",
-    "MC": "am_puck",
-    "Daniel": "am_puck"
+    "ExampleName1": "af_bella",
+    "ExampleName2": "am_puck"
   }
 }

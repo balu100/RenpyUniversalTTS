@@ -2,20 +2,6 @@
   "enabled": true,
   "engine": "chatterbox",
   "speaker_name_mode": "on_speaker_change",
-  "tools": {
-    "curl_path": "curl",
-    "ffplay_path": "ffplay",
-    "ffplay_loglevel": "error",
-    "ffplay_channel_option": "ch_layout",
-    "ffplay_volume": null,
-    "ffplay_extra_args": []
-  },
-  "audio": {
-    "raw_pcm": true,
-    "sample_format": "s16le",
-    "sample_rate": 24000,
-    "channel_layout": "mono"
-  },
   "request": {
     "type": "chatterbox_tts"
   },
@@ -28,7 +14,7 @@
     "default_profile": {
       "voice_mode": "clone",
       "reference_audio_filename": "Emily.wav",
-	  "temperature": 0.8,
+      "temperature": 0.8,
       "exaggeration": 1.2,
       "cfg_weight": 0.5,
       "seed": 3000,
@@ -37,39 +23,21 @@
     "profiles": {
       "Narrator": {
         "voice_mode": "clone",
-        "reference_audio_filename": "alice_reference.wav",
-        "temperature": 0.8,
-        "exaggeration": 1.2,
-        "cfg_weight": 0.5,
-        "seed": 3000,
-        "speed_factor": 1.0
+        "reference_audio_filename": "alice_reference.wav"
       },
       "Alice": {
         "voice_mode": "clone",
-        "reference_audio_filename": "alice_reference.wav",
-        "temperature": 0.8,
-        "exaggeration": 1.2,
-        "cfg_weight": 0.5,
-        "seed": 3000,
-        "speed_factor": 1.0
+        "reference_audio_filename": "alice_reference.wav"
       },
       "Bob": {
         "voice_mode": "clone",
         "reference_audio_filename": "bob_reference.wav",
-        "temperature": 0.8,
-        "exaggeration": 1.2,
-        "cfg_weight": 0.5,
-        "seed": 2000,
-        "speed_factor": 1.0
+        "seed": 2000
       },
       "ExampleName1": {
         "voice_mode": "clone",
         "reference_audio_filename": "example_reference.wav",
-        "temperature": 0.8,
-        "exaggeration": 1.2,
-        "cfg_weight": 0.5,
-        "seed": 2000,
-        "speed_factor": 1.0
+        "seed": 2000
       },
       "ExampleName2": {
         "voice_mode": "predefined",

@@ -1,194 +1,133 @@
 # Config Examples
 
-All user settings live in `renpy_universal_tts_config.json`.
+Pick an engine preset, rename it to `renpy_universal_tts_config.json`, and place
+it beside the `.rpy` in the game's `game/` folder. Restart the game after editing.
+JSON allows neither comments nor trailing commas.
 
-The `.rpy` file should not be edited for normal setup. Pick an example from
-`configs/`, copy it next to the `.rpy`, and rename it to:
+The short presets contain the settings most people need. Older full configs
+with `tools` and `audio` blocks continue to work. Optional defaults are listed here.
 
-```text
-renpy_universal_tts_config.json
-```
-
-## Main Fields
+## Basic Settings
 
 ```json
 {
   "enabled": true,
-  "engine": "vibevoice",
+  "engine": "kokoro",
   "speaker_name_mode": "on_speaker_change",
-  "tools": {},
-  "audio": {},
-  "request": {},
-  "openai": {},
-  "default_voice": "Emma",
-  "voices": {}
-}
-```
-
-For native Chatterbox `/tts` configs, the `openai`, `default_voice`, and
-`voices` fields are replaced by a `chatterbox` profile block.
-
-## VibeVoice
-
-Use `configs/vibevoice.json`.
-
-Voice mapping:
-
-```json
-"default_voice": "Emma",
-"voices": {
-  "Narrator": "Davis",
-  "Alice": "Emma",
-  "Bob": "Carter"
-}
-```
-
-Endpoint:
-
-```json
-"request": {
-  "type": "openai"
-},
-"openai": {
-  "url": "http://localhost:8880/v1/audio/speech",
-  "model": "tts-1",
-  "response_format": "pcm",
-  "stream": true,
-  "speed": null,
-  "extra_body": {}
-}
-```
-
-## Kokoro Raw PCM
-
-Use `configs/kokoro.json`.
-
-```json
-"default_voice": "af_heart",
-"voices": {
-  "Narrator": "af_heart",
-  "Alice": "af_bella",
-  "Bob": "am_puck"
-}
-```
-
-## Kokoro MP3 Fallback
-
-Use `configs/kokoro_mp3.json`.
-
-```json
-"audio": {
-  "raw_pcm": false,
-  "sample_format": "s16le",
-  "sample_rate": 24000,
-  "channel_layout": "mono"
-},
-"openai": {
-  "response_format": "mp3",
-  "stream": false
-}
-```
-
-This has more delay than raw PCM streaming, but it is useful if a server does
-not support raw PCM.
-
-## Qwen3-TTS
-
-Use `configs/qwen.json`.
-
-Qwen uses the normal OpenAI-compatible config shape. Voice IDs come from the
-Qwen server's `voices.json`; the example IDs below are placeholders.
-
-Reference audio files need to be in the Qwen server's `reference_audio/` folder,
-and each usable voice also needs an entry in `voices.json`.
-
-```json
-"request": {
-  "type": "openai"
-},
-"openai": {
-  "url": "http://127.0.0.1:8880/v1/audio/speech",
-  "model": "tts-1",
-  "response_format": "pcm",
-  "speed": null,
-  "extra_body": {}
-},
-"default_voice": "d01",
-"voices": {
-  "Narrator": "d01",
-  "ExampleName1": "d03",
-  "ExampleName2": "d12"
-}
-```
-
-Qwen streams when `response_format` is `pcm`. Do not add `"stream": true`
-unless your Qwen server explicitly supports that request field.
-
-## Chatterbox Predefined Voices
-
-Use `configs/chatterbox_predefined.json`.
-
-Native Chatterbox streaming needs a server build that supports `stream: true`.
-If your server rejects the request, set `"stream": false`.
-
-For streaming Chatterbox, use `"split_text": true`. `chunk_size` controls how
-many words are synthesized per streamed chunk. Lower values start faster; higher
-values can sound smoother. The default example uses `50`.
-
-```json
-"request": {
-  "type": "chatterbox_tts"
-},
-"chatterbox": {
-  "url": "http://localhost:8880/tts",
-  "output_format": "pcm",
-  "stream": true,
-  "chunk_size": 50,
-  "split_text": true,
-  "default_profile": {
-    "voice_mode": "predefined",
-    "predefined_voice_id": "Emily.wav"
+  "request": { "type": "openai" },
+  "openai": {
+    "url": "http://127.0.0.1:8880/v1/audio/speech",
+    "model": "kokoro",
+    "response_format": "pcm",
+    "stream": true
   },
-  "profiles": {
-    "Alice": {
-      "voice_mode": "predefined",
-      "predefined_voice_id": "Alice.wav"
+  "default_voice": "af_heart",
+  "voices": {
+    "ExampleName1": "af_bella",
+    "ExampleName2": "am_puck"
+  }
+}
+```
+
+`engine` identifies the preset; `request.type` selects the wire protocol.
+Set `enabled: false` to leave original self-voicing in place.
+Speaker-name modes are `on_speaker_change`, `always`, and `never`.
+
+Use the full endpoint URL, including `/v1/audio/speech` or native `/tts`.
+Use the voice IDs or reference filenames actually registered on that server.
+Unmatched speakers use `default_voice` (or Chatterbox's `default_profile`).
+
+## OpenAI-Compatible Voices and Overrides
+
+A string selects a voice. An object can also add per-character request settings:
+
+```json
+"openai": {
+  "url": "http://127.0.0.1:7860/v1/audio/speech",
+  "model": "tts-1",
+  "response_format": "pcm",
+  "stream": true,
+  "extra_body": {
+    "seed": 42,
+    "guidance_scale": 4,
+    "instructions": "Speak clearly and naturally."
+  }
+},
+"default_voice": "clone:your_narrator",
+"voices": {
+  "ExampleName1": "clone:your_character",
+  "ExampleName2": {
+    "voice": "clone:your_character",
+    "extra_body": {
+      "instructions": "Speak calmly and thoughtfully."
     }
   }
 }
 ```
 
-## Chatterbox Voice Cloning
+Global `openai.extra_body` values are inherited by every speaker. The speaker's
+`extra_body` replaces matching keys; other keys such as the seed remain inherited.
+Omitting a profile's `voice` uses `default_voice`.
 
-Use `configs/chatterbox_clone.json`.
+`extra_body` is for backend-specific options. Set `input`, `voice`, `model`,
+and `response_format` using their dedicated fields; overriding those from
+`extra_body` is rejected. Instructions/guidance fields above are Breeze features,
+not universal OpenAI features. Only send options the selected server accepts.
 
-Reference audio filenames must exist in the Chatterbox server's
-`reference_audio` folder. The Ren'Py mod does not upload audio files; it only
-sends the filename to the Chatterbox API.
+For Breeze voice design, set `default_voice: null` and supply meaningful
+`extra_body.instructions`; a profile can set `voice: null` explicitly to design
+its own voice. The voice field is then omitted from the request.
 
-```text
-Chatterbox-TTS-Server/
-  reference_audio/
-    alice_reference.wav
-```
+`openai.speed` is optional and omitted when null. `openai.stream` is also
+optional: Qwen's preset intentionally omits it. Transport format and actual
+streaming behavior are server-specific.
+
+## Native Chatterbox Profiles
+
+Use `request.type: chatterbox_tts` and a `chatterbox` block:
 
 ```json
-"profiles": {
-  "Alice": {
+"chatterbox": {
+  "url": "http://127.0.0.1:8880/tts",
+  "output_format": "pcm",
+  "stream": true,
+  "split_text": true,
+  "chunk_size": 50,
+  "default_profile": {
     "voice_mode": "clone",
-    "reference_audio_filename": "alice_reference.wav",
+    "reference_audio_filename": "example_narrator.wav",
     "temperature": 0.8,
-    "exaggeration": 1.2,
-    "cfg_weight": 0.5,
-    "seed": 3000,
-    "speed_factor": 1.0
+    "seed": 3000
+  },
+  "profiles": {
+    "ExampleName1": {
+      "reference_audio_filename": "example_character.wav"
+    },
+    "ExampleName2": {
+      "voice_mode": "predefined",
+      "predefined_voice_id": "Emily.wav",
+      "seed": 2000
+    }
   }
 }
 ```
 
+**All** default-profile fields are inherited, then speaker fields override them.
+This includes voice mode, filename, temperature, exaggeration, CFG weight, seed,
+speed, language, and any profile-level stream/split/chunk overrides. Native
+global stream/split/chunk/language fields are applied before profile overrides.
+Switching to predefined mode removes the inherited clone filename from the
+API payload, and switching to clone mode removes the predefined filename.
+
+Clone files must already exist in the **server's** `reference_audio/` folder.
+Predefined files must exist in its `voices/` folder. The mod never uploads files.
+Remove tuning fields unsupported by the selected model, especially Turbo.
+See [Chatterbox](docs/engines/chatterbox.md) for the stock-WAV/PCM-fork distinction.
+
 ## Audio
 
-Raw PCM streaming:
+When `audio.raw_pcm` is omitted, `pcm` selects raw playback and encoded formats
+select decoder autodetection. A minimal PCM config defaults to:
 
 ```json
 "audio": {
@@ -199,15 +138,14 @@ Raw PCM streaming:
 }
 ```
 
-Encoded MP3/WAV/Opus:
+Only change sample settings if your server produces another format. With a WAV,
+MP3, Opus, AAC, or FLAC response, omit the block or set `raw_pcm: false`.
+A contradictory explicit raw/encoded setting is rejected before self-voicing
+is replaced. SSE event streams cannot be played by ffplay.
 
-```json
-"audio": {
-  "raw_pcm": false
-}
-```
+## Tool Paths and Volume
 
-## Tools
+Optional defaults:
 
 ```json
 "tools": {
@@ -220,15 +158,45 @@ Encoded MP3/WAV/Opus:
 }
 ```
 
-If `ffplay` is not beside the `.rpy` file and not on `PATH`, use an absolute
-path:
+Executables are searched beside the script, in game folders, and on PATH.
+If needed, use a full path with forward slashes, for example
+`C:/Tools/ffmpeg/bin/ffplay.exe` or `/usr/bin/ffplay`.
+Use `ffplay_channel_option: ac` only for a player version that needs that syntax.
+
+`ffplay_volume` is 0-100; null leaves the player default. This is independent
+of the game's voice mixer. Arbitrary player arguments are an advanced option
+and can override playback behavior.
+
+## Network
+
+Optional defaults (seconds):
 
 ```json
-"ffplay_path": "C:/Tools/ffmpeg/bin/ffplay.exe"
+"network": {
+  "connect_timeout": 5,
+  "request_timeout": 120,
+  "busy_retry_seconds": 3
+}
 ```
 
-Older ffplay builds may need:
+Connection and total-request timeouts prevent indefinite waits.
+`busy_retry_seconds` allows short retries after HTTP 409, while that line is
+still current. Set it to 0 to disable busy retries. Ordinary failures do not
+automatically replay a partially heard line.
 
-```json
-"ffplay_channel_option": "ac"
+## Validation and Updates
+
+The script checks required fields, known config keys, voice/profile shape,
+numeric settings, and audio consistency when loading. It cannot know whether a
+voice file exists on a remote server. That is checked by the server when called.
+
+Missing, malformed, or disabled configs leave original self-voicing in place.
+Inspect `game/renpy_universal_tts_debug.log` for precise field errors.
+Optional preflight on a machine with Python:
+
+```sh
+python tools/check_config.py path/to/renpy_universal_tts_config.json
 ```
+
+Updating the mod means replacing the `.rpy` and keeping your existing JSON.
+New optional fields do not require rewriting an old config.

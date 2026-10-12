@@ -1,0 +1,35 @@
+{
+  "enabled": true,
+  "engine": "breeze",
+  "speaker_name_mode": "on_speaker_change",
+  "request": {
+    "type": "openai"
+  },
+  "openai": {
+    "url": "http://127.0.0.1:7860/v1/audio/speech",
+    "model": "tts-1",
+    "response_format": "pcm",
+    "stream": true,
+    "extra_body": {
+      "stream_format": "audio",
+      "instructions": "A warm, clear narrator with a calm and natural delivery.",
+      "guidance_scale": 4,
+      "seed": 42
+    }
+  },
+  "default_voice": null,
+  "voices": {
+    "ExampleName1": {
+      "voice": null,
+      "extra_body": {
+        "instructions": "A confident young woman with a bright, expressive voice."
+      }
+    },
+    "ExampleName2": {
+      "voice": null,
+      "extra_body": {
+        "instructions": "An older man with a deep voice and a measured delivery."
+      }
+    }
+  }
+}

@@ -1,206 +1,85 @@
 # Troubleshooting
 
-Check the game's `log.txt` first. Search for:
+Start with `game/renpy_universal_tts_debug.log`. Search the game's `log.txt`
+for `UNIVERSAL TTS` too. Keep the TTS server terminal/log open while testing.
 
-```text
-UNIVERSAL TTS
-```
+## Pressing V Does Nothing or Uses the System Voice
 
-If `log.txt` does not include `UNIVERSAL TTS` lines, check the script's own
-debug file:
+Check that both runtime files are in `game/` and only one replacement script
+is installed. Restart the game after changing a config.
 
-```text
-game/renpy_universal_tts_debug.log
-```
-
-## Pressing V Does Nothing
-
-- Make sure `renpy_universal_tts.rpy` is inside the game's `game/` folder.
-- Make sure `renpy_universal_tts_config.json` is next to it.
-- Make sure the game is a Ren'Py game.
-- Make sure no other TTS replacement script is installed.
-- Check for `UNIVERSAL TTS: config loaded`.
-  If that line is not in `log.txt`, check `renpy_universal_tts_debug.log`.
-
-If the config is missing, the log will contain:
-
-```text
-UNIVERSAL TTS ERROR: missing renpy_universal_tts_config.json
-```
-
-## Config Does Not Load
-
-JSON does not allow comments or trailing commas.
-
-Bad:
-
-```json
-{
-  "engine": "vibevoice",
-}
-```
-
-Good:
-
-```json
-{
-  "engine": "vibevoice"
-}
-```
+Missing, malformed, or disabled configs leave original self-voicing in place.
+Look for `invalid config`, `failed to read config`, or `missing` in the debug
+log. Field errors identify the offending key; typo messages may suggest its
+correct spelling. JSON permits neither comments nor trailing commas.
+If enabled and valid, expect `config loaded` and a self-voicing hook message.
 
 ## Server Is Not Reached
 
-For VibeVoice/Kokoro/custom OpenAI-compatible servers, check:
+Check the **complete** endpoint and its published port:
 
-```json
-"openai": {
-  "url": "http://localhost:8880/v1/audio/speech"
-}
-```
+| Preset | Default Speech Endpoint |
+| --- | --- |
+| Kokoro / VibeVoice / Qwen / custom | `http://127.0.0.1:8880/v1/audio/speech` |
+| Chatterbox legacy PCM setup | `http://127.0.0.1:8880/tts` |
+| Breeze | `http://127.0.0.1:7860/v1/audio/speech` |
 
-For Chatterbox native profiles, check:
+Stock Chatterbox commonly publishes port 8004. Follow its actual Compose file.
+Run one server per port. A model still downloading/loading is not yet ready.
 
-```json
-"chatterbox": {
-  "url": "http://localhost:8880/tts"
-}
-```
+The debug log records a pipe result with HTTP status, curl exit code, and player
+exit code, followed by tool error text.
 
-## API Works But There Is No Sound
+| Result | Check |
+| --- | --- |
+| curl code 7 | Server not running, wrong host/port, or refused connection |
+| curl code 28 | Connection/request timeout; check readiness and `network` settings |
+| HTTP 404 | Wrong endpoint or unknown voice ID |
+| HTTP 409 | Server still working; brief retries apply only to the current line |
+| HTTP 422 | Unsupported settings, wrong voice mode, or invalid reference |
+| HTTP 429 | Server rate limit |
+| HTTP 503 | Model not ready; inspect server logs, including GPU memory errors |
 
-Make sure `ffplay` works.
+HTTP error bodies are blocked from the audio pipe. A server returning HTTP 200
+with non-audio bytes or an incompatible format still needs investigation.
 
-Windows:
+## API Works but There Is No Sound
 
-```powershell
-ffplay.exe -version
-```
+On Windows check `curl.exe --version` and `ffplay.exe -version`.
+On Linux check `curl --version` and `ffplay -version`.
+Set `tools.curl_path` / `tools.ffplay_path` if tools are not on PATH or beside
+the script. Player errors now appear in the debug log.
 
-Linux:
+A `pipe finished` message confirms process completion, not that the device
+audibly played speech. Check system output device and volume too.
 
-```bash
-ffplay -version
-```
+## Loud Noise or Wrong-Speed Speech
 
-If `ffplay` is not found, set:
+Match server output to the player. The normal PCM defaults are s16le,
+24000 Hz, mono. Do not decode a WAV header, MP3 bytes, JSON, or SSE as raw PCM.
 
-```json
-"tools": {
-  "ffplay_path": "C:/Tools/ffmpeg/bin/ffplay.exe"
-}
-```
+For stock Chatterbox native WAV streaming set `chatterbox.output_format: wav`.
+If an older config explicitly has `audio.raw_pcm`, set it to false.
+See [Chatterbox format guide](docs/engines/chatterbox.md#match-the-audio-format).
 
-or:
+## Voices Do Not Change
 
-```json
-"tools": {
-  "ffplay_path": "/usr/bin/ffplay"
-}
-```
+Speaker names must match what the game displays. Unmatched speakers use the
+default. Voice IDs must exist on the server:
 
-## Raw PCM Test Command
+- Qwen: server `voices.json` IDs, not the reference filename.
+- Breeze: saved profile IDs from its UI / `/v1/audio/voices`.
+- Chatterbox clone: filename in server `reference_audio/`.
+- Chatterbox predefined: filename in server `voices/`.
+- VibeVoice/Kokoro: installed voice IDs.
 
-This is the same audio path the script uses for raw PCM.
+The script does not upload references. Missing Qwen IDs may fall back server-side.
+If a custom game screen does not expose names to self-voicing, character mapping
+may need game-specific integration.
 
-PowerShell:
+## Volume Ignores the Game Slider
 
-```powershell
-$body = @{
-  model = "tts-1"
-  voice = "Emma"
-  input = "Hello from universal TTS."
-  response_format = "pcm"
-  stream = $true
-} | ConvertTo-Json -Compress
-
-$tmp = Join-Path $env:TEMP "renpy_universal_tts.json"
-Set-Content -NoNewline -Encoding ascii $tmp $body
-
-cmd /c "curl.exe -sN --json @$tmp http://localhost:8880/v1/audio/speech | ffplay.exe -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -"
-```
-
-Linux:
-
-```bash
-tmp="$(mktemp)"
-printf '%s' '{"model":"tts-1","voice":"Emma","input":"Hello from universal TTS.","response_format":"pcm","stream":true}' > "$tmp"
-curl -sN --json @"$tmp" http://localhost:8880/v1/audio/speech | ffplay -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -
-rm -f "$tmp"
-```
-
-## Chatterbox Raw PCM Test Command
-
-PowerShell:
-
-```powershell
-$body = @{
-  text = "Hello from Chatterbox."
-  voice_mode = "predefined"
-  predefined_voice_id = "Emily.wav"
-  output_format = "pcm"
-  split_text = $false
-} | ConvertTo-Json -Compress
-
-$tmp = Join-Path $env:TEMP "chatterbox_tts.json"
-Set-Content -NoNewline -Encoding ascii $tmp $body
-
-cmd /c "curl.exe -sN --json @$tmp http://localhost:8880/tts | ffplay.exe -nodisp -autoexit -f s16le -sample_rate 24000 -ch_layout mono -i -"
-```
-
-If this fails because your Chatterbox build does not support PCM, use WAV:
-
-```json
-"audio": {
-  "raw_pcm": false
-},
-"chatterbox": {
-  "output_format": "wav"
-}
-```
-
-## Loud Noise Or Broken Audio
-
-The server output does not match the `audio` settings.
-
-For raw PCM:
-
-```json
-"audio": {
-  "raw_pcm": true,
-  "sample_format": "s16le",
-  "sample_rate": 24000,
-  "channel_layout": "mono"
-}
-```
-
-For MP3/WAV/Opus:
-
-```json
-"audio": {
-  "raw_pcm": false
-}
-```
-
-## ffplay Starts Then Exits
-
-Try changing:
-
-```json
-"ffplay_channel_option": "ch_layout"
-```
-
-to:
-
-```json
-"ffplay_channel_option": "ac"
-```
-
-## Voice Volume Ignores Ren'Py Settings
-
-This script plays audio through external `ffplay`, so Ren'Py voice volume does
-not control it.
-
-Use:
+External ffplay is independent of Ren'Py's voice mixer. Example:
 
 ```json
 "tools": {
@@ -208,19 +87,47 @@ Use:
 }
 ```
 
-or adjust system volume.
+Use 0-100, or adjust system output volume.
 
-## Current Line Is Skipped
+## A Line Is Interrupted or Skipped
 
-The script cancels the old TTS process when a new line arrives. This is wanted
-behavior when clicking through dialogue.
+Advancing dialogue cancels old playback and pending work; only the latest line
+is wanted. The client cannot guarantee that every server cancels GPU generation
+when its connection closes. Breeze may return 409 while winding down.
+The mod retries that status briefly and cancels retries when you advance again.
 
-Useful log lines:
+Useful log events are `queued`, `stream start`, `request built`, `pipe started`,
+`pipe result`, `pipe canceled`, `busy retry`, and `pipe finished`.
+There is no audio-cache MISS/HIT workflow in this version.
 
-```text
-UNIVERSAL TTS: queued
-UNIVERSAL TTS: stream MISS
-UNIVERSAL TTS: request built
-UNIVERSAL TTS: pipe started
-UNIVERSAL TTS: pipe finished
+## Test PCM Outside the Game
+
+Use a known registered voice from your server. This example is VibeVoice;
+Qwen should omit `stream`, and Chatterbox uses a different request body.
+
+PowerShell:
+
+```powershell
+$body = @{
+  model = "tts-1"
+  voice = "Emma"
+  input = "Hello from Universal TTS."
+  response_format = "pcm"
+  stream = $true
+} | ConvertTo-Json -Compress
+$tmp = Join-Path $env:TEMP "universal_tts_test.json"
+Set-Content -NoNewline -Encoding ascii $tmp $body
+cmd /c "curl.exe --fail --silent --show-error --no-buffer --connect-timeout 5 --max-time 120 --header Content-Type:application/json --data-binary @$tmp http://127.0.0.1:8880/v1/audio/speech | ffplay.exe -nodisp -autoexit -loglevel error -f s16le -sample_rate 24000 -ch_layout mono -i -"
 ```
+
+Linux:
+
+```sh
+printf '%s' '{"model":"tts-1","voice":"Emma","input":"Hello.","response_format":"pcm","stream":true}' |
+curl --fail --silent --show-error --no-buffer --connect-timeout 5 --max-time 120 \
+  --header 'Content-Type: application/json' --data-binary @- \
+  http://127.0.0.1:8880/v1/audio/speech |
+ffplay -nodisp -autoexit -loglevel error -f s16le -sample_rate 24000 -ch_layout mono -i -
+```
+
+For other engine bodies follow the engine guide and installed API schema.
